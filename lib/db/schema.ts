@@ -32,7 +32,7 @@ export const users = pgTable("users", {
  */
 export const routines = pgTable("routines", {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id").notNull().references(() => users.id),
+    userId: uuid("user_id").references(() => users.id),
     title: text("title").notNull(),
     routineInfo: text("routine_info").notNull(),
     startDate: timestamp("start_date").notNull(),

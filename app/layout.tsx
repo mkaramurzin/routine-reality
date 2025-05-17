@@ -6,12 +6,12 @@ import "../styles/globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
-  title: "Droply",
-  description: "Secure cloud storage for your images, powered by ImageKit",
+  title: "Routine Reality",
+  description: "Routine Reality",
 };
 
 export default function RootLayout({

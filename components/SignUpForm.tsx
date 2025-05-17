@@ -88,6 +88,7 @@ export default function SignUpForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+        await fetch("/api/users/onboard", { method: "POST" });
         router.push("/dashboard");
       } else {
         console.error("Verification incomplete:", result);

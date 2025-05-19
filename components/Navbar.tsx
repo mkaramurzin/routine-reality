@@ -135,7 +135,6 @@ export default function Navbar({ user }: NavbarProps) {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 z-10">
-            <CloudUpload className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-bold">Routine Reality</h1>
           </Link>
 

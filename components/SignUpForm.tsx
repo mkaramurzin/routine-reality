@@ -186,7 +186,7 @@ export default function SignUpForm() {
           Create Your Account
         </h1>
         <p className="text-default-500 text-center">
-          Sign up to start managing your images securely
+          Sign up to start
         </p>
       </CardHeader>
 
@@ -288,7 +288,7 @@ export default function SignUpForm() {
             />
           </div>
 
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <div className="flex items-start gap-2">
               <CheckCircle className="h-5 w-5 text-primary mt-0.5" />
               <p className="text-sm text-default-600">
@@ -296,7 +296,7 @@ export default function SignUpForm() {
                 Policy
               </p>
             </div>
-          </div>
+          </div> */}
 
           <Button
             type="submit"

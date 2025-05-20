@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
-import { routines, taskSets, tasks, users } from "@/lib/db/schema";
+import { routines, taskSets, tasks, users, activeTasks } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { DateTime } from "luxon";
 
 export async function createMonkModeRoutine(clerkUserId: string) {
   // Find the user by their Clerk ID
@@ -32,6 +33,8 @@ export async function createMonkModeRoutine(clerkUserId: string) {
     stageNumber: 1,
     title: "Week One",
     description: "Tasks for the first week",
+    scheduledHour: 5,
+    scheduledMinute: 0,
   }).returning();
 
   const [taskSet2] = await db.insert(taskSets).values({
@@ -39,6 +42,8 @@ export async function createMonkModeRoutine(clerkUserId: string) {
     stageNumber: 2,
     title: "Week Two",
     description: "Tasks for the second week",
+    scheduledHour: 5,
+    scheduledMinute: 0,
   }).returning();
 
   const [taskSet3] = await db.insert(taskSets).values({
@@ -46,10 +51,12 @@ export async function createMonkModeRoutine(clerkUserId: string) {
     stageNumber: 3,
     title: "Week Three",
     description: "Tasks for the third week",
+    scheduledHour: 5,
+    scheduledMinute: 0,
   }).returning();
 
   // Create tasks for Week One
-  await db.insert(tasks).values([
+  const weekOneTasks = await db.insert(tasks).values([
     {
       taskSetId: taskSet1.id,
       title: "Meditate for 10 minutes",
@@ -71,7 +78,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       isOptional: false,
       order: 3,
     },
-  ]);
+  ]).returning();
 
   // Create tasks for Week Two
   await db.insert(tasks).values([
@@ -136,6 +143,35 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       order: 4,
     }
   ]);
+
+  // Retrieve the user's timezone (already queried above)
+  const userTimezone = (await db.query.users.findFirst({
+    where: eq(users.clerkUserId, clerkUserId),
+    columns: { timezone: true }
+  }))?.timezone || 'UTC';
+
+  // Schedule for 5:00 AM TODAY in user's timezone, stored as UTC
+  const todayInUserTz = DateTime.now().setZone(userTimezone).startOf("day").plus({
+    hours: taskSet1.scheduledHour || 0,
+    minutes: taskSet1.scheduledMinute || 0,
+  });
+
+  // Store in UTC for consistency
+  const scheduledFor = todayInUserTz.toUTC().toJSDate();
+
+  const activeTasksData = weekOneTasks.map(task => ({
+    userId: user.id,
+    routineId: routine.id,
+    originalTaskId: task.id,
+    title: task.title,
+    description: task.description,
+    isOptional: task.isOptional,
+    order: task.order,
+    status: "todo" as const,
+    scheduledFor, // now correct!
+  }));
+
+  await db.insert(activeTasks).values(activeTasksData);
 
   return routine;
 } 

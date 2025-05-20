@@ -6,6 +6,8 @@ interface NewTaskSet {
   stageNumber: number;
   title: string;
   description?: string;
+  scheduledHour: number;
+  scheduledMinute: number;
 }
 
 export async function createTaskSet(
@@ -34,6 +36,8 @@ export async function createTaskSet(
       stageNumber: data.stageNumber,
       title: data.title,
       description: data.description ?? null,
+      scheduledHour: data.scheduledHour,
+      scheduledMinute: data.scheduledMinute,
     })
     .returning();
 

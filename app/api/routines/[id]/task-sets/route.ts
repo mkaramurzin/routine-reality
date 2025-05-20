@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
       stageNumber,
       title,
       description,
+      scheduledHour: 0,
+      scheduledMinute: 0,
     });
 
     return NextResponse.json(taskSet, { status: 201 });

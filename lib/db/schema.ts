@@ -57,6 +57,8 @@ export const taskSets = pgTable("task_sets", {
     stageNumber: integer("stage_number").notNull(),
     title: text("title").notNull(),
     description: text("description"),
+    scheduledHour: integer("scheduled_hour").notNull(),
+    scheduledMinute: integer("scheduled_minute").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

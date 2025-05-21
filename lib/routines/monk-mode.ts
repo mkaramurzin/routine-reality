@@ -168,7 +168,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
     isOptional: task.isOptional,
     order: task.order,
     status: "todo" as const,
-    scheduledFor, // now correct!
+    scheduledFor,
   }));
 
   await db.insert(activeTasks).values(activeTasksData);

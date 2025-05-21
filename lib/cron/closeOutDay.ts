@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { db } from "@/lib/db";
-import { users, routines, activeTasks, unmarkedTasks, taskHistory } from "@/lib/db/schema";
+import { users, routines, activeTasks, unmarkedTasks, taskHistory, tasks } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function closeOutDayForAllUsers() {
@@ -80,6 +80,45 @@ export async function closeOutDayForAllUsers() {
       console.log(
         `User ${user.id}: ${toUnmarked.length} to unmarked, ${toHistory.length} to history`
       );
+
+      // Update streak counts for original tasks
+      for (const task of tasksForYesterday) {
+        // Only process tasks that have an originalTaskId
+        if (task.originalTaskId) {
+          try {
+            // Completed tasks increment streak, todo/missed tasks reset to 0
+            if (task.status === "completed") {
+              // Get current streak value first
+              const originalTask = await db.query.tasks.findFirst({
+                where: (t) => eq(t.id, task.originalTaskId!),
+              });
+              
+              if (originalTask) {
+                const currentStreak = originalTask.streak || 0;
+                const newStreak = currentStreak + 1;
+                
+                // Update the streak count
+                await db
+                  .update(tasks)
+                  .set({ streak: newStreak, updatedAt: new Date() })
+                  .where(eq(tasks.id, task.originalTaskId!));
+                
+                console.log(`Incremented streak for task ${task.originalTaskId} to ${newStreak}`);
+              }
+            } else {
+              // Reset streak to 0 for todo or missed tasks
+              await db
+                .update(tasks)
+                .set({ streak: 0, updatedAt: new Date() })
+                .where(eq(tasks.id, task.originalTaskId!));
+              
+              console.log(`Reset streak for task ${task.originalTaskId} to 0`);
+            }
+          } catch (err) {
+            console.error(`Failed to update streak for task ${task.originalTaskId}:`, err);
+          }
+        }
+      }
 
       // Insert into unmarkedTasks, set activeTaskId to null to avoid FK violation
       for (const task of toUnmarked) {

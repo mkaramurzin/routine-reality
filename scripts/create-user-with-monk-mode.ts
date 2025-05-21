@@ -13,7 +13,7 @@ async function createUserWithMonkMode() {
     .insert(users)
     .values({
       clerkUserId: mockClerkUserId,
-      timezone: "Asia/Shanghai", // Timezone
+      timezone: "America/Los_Angeles", // Timezone
     })
     .returning();
 

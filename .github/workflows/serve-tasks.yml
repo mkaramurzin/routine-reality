@@ -1,0 +1,15 @@
+name: Serve Tasks Cron
+
+on:
+  schedule:
+    - cron: '0 * * * *' # every hour
+  workflow_dispatch:     # allow manual runs
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger /api/cron/serve-tasks
+        run: |
+          curl -X POST https://your-app.vercel.app/api/cron/serve-tasks \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"

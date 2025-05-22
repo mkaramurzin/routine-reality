@@ -1,0 +1,15 @@
+name: Midnight Cleanup Cron
+
+on:
+  schedule:
+    - cron: '30 * * * *' # every hour at :30
+  workflow_dispatch:     # allow manual runs
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger /api/cron/midnight-cleanup
+        run: |
+          curl -X POST https://your-app.vercel.app/api/cron/midnight-cleanup \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"

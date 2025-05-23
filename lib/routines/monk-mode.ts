@@ -19,11 +19,13 @@ export async function createMonkModeRoutine(clerkUserId: string) {
     userId: user.id,
     title: "|Monk Mode|",
     routineInfo: "3-week routine to get you success-oriented",
+    routineType: "standard",
     startDate: new Date(),
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     stages: 3,
     thresholds: [21, 28, 28],
     currentStage: 1,
+    currentStageProgress: 0,
     status: "active",
   }).returning();
 

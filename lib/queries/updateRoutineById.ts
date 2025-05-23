@@ -5,11 +5,13 @@ import { eq, and } from "drizzle-orm";
 interface UpdateRoutineData {
   title?: string;
   routineInfo?: string;
+  routineType?: "template" | "standard" | "special";
   startDate?: Date;
   endDate?: Date;
   stages?: number;
   thresholds?: number[];
   currentStage?: number;
+  currentStageProgress?: number;
   status?: "active" | "paused" | "finished" | "abandoned";
 }
 

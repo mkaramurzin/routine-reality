@@ -23,12 +23,13 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { title, routineInfo, startDate, endDate, stages, thresholds } = body;
+  const { title, routineInfo, routineType, startDate, endDate, stages, thresholds } = body;
 
   // Basic validation
   if (
     !title ||
     !routineInfo ||
+    !routineType ||
     !startDate ||
     !endDate ||
     !stages ||
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
     const routine = await createRoutine(clerkUserId, {
       title,
       routineInfo,
+      routineType,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       stages,

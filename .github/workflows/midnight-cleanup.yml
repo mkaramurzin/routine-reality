@@ -1,4 +1,4 @@
-name: Midnight Cleanup Cron
+name: Midnight Cleanup
 
 on:
   schedule:

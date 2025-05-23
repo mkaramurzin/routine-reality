@@ -26,7 +26,7 @@ export async function serveTasksForAllUsers() {
       console.log(`User local time is ${nowUser.toISO()}`);
       
       // Check if it's 5:00 AM in the user's timezone (allow small window)
-      const isMorningTaskTime = nowUser.hour === 5 && nowUser.minute < 15;
+      const isMorningTaskTime = nowUser.hour === 5;
       console.log(`Is 5:00 AM task time for user? ${isMorningTaskTime} (Hour: ${nowUser.hour}, Minute: ${nowUser.minute})`);
       
       // Only proceed if it's the morning task time

@@ -1,4 +1,4 @@
-name: Serve Tasks Cron
+name: Serve Tasks
 
 on:
   schedule:

@@ -12,7 +12,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/test-cron",
   "/api/cron/serve-tasks",
   "/api/cron/midnight-cleanup",
-  "/api/debug-midnight"
+  "/api/routines(.*)",
+  "/api/routines/[id](.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

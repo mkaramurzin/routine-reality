@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import DashboardTaskList from "@/components/DashboardTaskList";
 
 export default async function Dashboard() {
   const { userId } = await auth();
@@ -27,15 +28,7 @@ export default async function Dashboard() {
       <Navbar user={serializedUser} />
 
       <main className="flex-1 container mx-auto py-8 px-6">
-        {/* <DashboardContent
-          userId={userId}
-          userName={
-            user?.firstName ||
-            user?.fullName ||
-            user?.emailAddresses?.[0]?.emailAddress ||
-            ""
-          }
-        /> */}
+        <DashboardTaskList userId={userId} />
       </main>
 
       <footer className="bg-default-50 border-t border-default-200 py-6">

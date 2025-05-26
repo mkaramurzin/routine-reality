@@ -13,7 +13,6 @@ const isPublicRoute = createRouteMatcher([
   "/api/cron/serve-tasks",
   "/api/cron/midnight-cleanup",
   "/api/routines(.*)",
-  "/api/routines/[id](.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
@@ -21,6 +20,7 @@ export default clerkMiddleware(async (auth, request) => {
   const userId = (await user).userId;
   const url = new URL(request.url);
 
+  // Allow specific cron endpoints without any auth checks
   if (url.pathname === "/api/test-cron" || 
       url.pathname === "/api/debug-midnight" ||
       url.pathname === "/api/cron/serve-tasks" ||
@@ -28,14 +28,22 @@ export default clerkMiddleware(async (auth, request) => {
     return NextResponse.next();
   }
 
-  if (userId && isPublicRoute(request) && url.pathname !== "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // If this is a public route, allow it to proceed
+  if (isPublicRoute(request)) {
+    // For API routes, always allow them to proceed to their handlers
+    if (url.pathname.startsWith("/api/")) {
+      return NextResponse.next();
+    }
+    // For authenticated users visiting public pages (except home), redirect to dashboard
+    if (userId && url.pathname !== "/") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    // For unauthenticated users or home page, allow access
+    return NextResponse.next();
   }
 
-  // Protect non-public routes
-  if (!isPublicRoute(request)) {
-    await auth.protect();
-  }
+  // Protect non-public routes - require authentication
+  await auth.protect();
 });
 
 export const config = {

@@ -8,6 +8,7 @@ import { Spinner } from "@heroui/spinner";
 import { ArrowLeft, Calendar, Target, Info } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import StageProgressionPanel from "@/components/StageProgressionPanel";
+import RoutineTaskList from "@/components/RoutineTaskList";
 import { getRoutineById, advanceRoutineStage } from "@/lib/api/routines";
 
 interface Routine {
@@ -143,6 +144,9 @@ export default function RoutineDetailPage() {
             onStageAdvancement={handleStageAdvancement}
             canAdvance={routine.status === "active"}
           />
+
+          {/* Today's Tasks Section */}
+          <RoutineTaskList routineId={routine.id} />
 
           {/* Routine Information */}
           <Card className="shadow-md">

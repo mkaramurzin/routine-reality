@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 interface NewRoutine {
   title: string;
   routineInfo: string;
+  routineType: "template" | "standard" | "special";
   startDate: Date;
   endDate: Date;
   stages: number;
@@ -30,11 +31,13 @@ export async function createRoutine(
       userId: user.id,
       title: routineData.title,
       routineInfo: routineData.routineInfo,
+      routineType: routineData.routineType,
       startDate: routineData.startDate,
       endDate: routineData.endDate,
       stages: routineData.stages,
       thresholds: routineData.thresholds,
       currentStage: 1, // Initial stage
+      currentStageProgress: 0, // Initial progress
       status: "active",
     })
     .returning();

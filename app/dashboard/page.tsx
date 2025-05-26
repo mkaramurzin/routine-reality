@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import DashboardTaskList from "@/components/DashboardTaskList";
+import RoutineList from "@/components/RoutineList";
 
 export default async function Dashboard() {
   const { userId } = await auth();
@@ -28,7 +29,28 @@ export default async function Dashboard() {
       <Navbar user={serializedUser} />
 
       <main className="flex-1 container mx-auto py-8 px-6">
-        <DashboardTaskList userId={userId} />
+        <div className="space-y-12">
+          {/* Welcome Section */}
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-default-900 mb-2">
+              Welcome back{serializedUser?.firstName ? `, ${serializedUser.firstName}` : ''}!
+            </h1>
+            <p className="text-default-600">
+              Track your progress and advance through your routine stages.
+            </p>
+          </div>
+
+          {/* Routines Section */}
+          <section>
+            <RoutineList />
+          </section>
+
+          {/* Today's Tasks Section */}
+          <section>
+            <h2 className="text-2xl font-bold text-default-900 mb-6">Today's Tasks</h2>
+            <DashboardTaskList userId={userId} />
+          </section>
+        </div>
       </main>
 
       <footer className="bg-default-50 border-t border-default-200 py-6">

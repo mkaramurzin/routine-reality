@@ -25,10 +25,8 @@ const DashboardTaskList: React.FC<DashboardTaskListProps> = ({ userId }) => {
     const fetchTasks = async () => {
       try {
         setLoading(true);
-        // Note: We need to add the routineId as it seems to be required by the API
-        // For now, we'll just use a placeholder value, but this should be adjusted in a real implementation
-        const routineId = "4819be67-e550-42c3-90fc-ab56d5aa6568"; // This should be replaced with a real routine ID
-        const response = await fetch(`/api/tasks?type=active&routineId=${routineId}`);
+        // Fetch tasks from all user routines by not providing a routineId
+        const response = await fetch(`/api/tasks?type=active`);
         
         if (!response.ok) {
           throw new Error(`Error fetching tasks: ${response.statusText}`);

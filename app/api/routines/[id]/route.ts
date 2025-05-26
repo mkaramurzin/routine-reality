@@ -46,6 +46,42 @@ export async function PATCH(request: NextRequest) {
   const body = await request.json();
 
   try {
+    // Handle stage advancement action
+    if (body.action === "advanceStage") {
+      // First, get the current routine to check ownership and current state
+      const currentRoutine = await getRoutineById(clerkUserId, id);
+      
+      if (!currentRoutine) {
+        return NextResponse.json(
+          { error: "Routine not found." },
+          { status: 404 }
+        );
+      }
+
+      // Validate that advancement is possible
+      if (currentRoutine.status === "finished") {
+        return NextResponse.json(
+          { error: "Routine is already finished." },
+          { status: 400 }
+        );
+      }
+
+      if (currentRoutine.currentStage >= currentRoutine.stages - 1) {
+        // User is on the final stage, mark as finished
+        const routine = await updateRoutineById(clerkUserId, id, {
+          status: "finished"
+        });
+        return NextResponse.json(routine);
+      } else {
+        // Advance to next stage
+        const routine = await updateRoutineById(clerkUserId, id, {
+          currentStage: currentRoutine.currentStage + 1
+        });
+        return NextResponse.json(routine);
+      }
+    }
+
+    // Handle regular field updates
     const allowedFields = [
       "title",
       "routineInfo",

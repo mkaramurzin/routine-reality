@@ -88,7 +88,25 @@ export default function SignUpForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.push("/dashboard");
+        
+        // Create user record in our database
+        try {
+          const onboardResponse = await fetch('/api/users/onboard', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (!onboardResponse.ok) {
+            console.error('Failed to create user record');
+          }
+        } catch (error) {
+          console.error('Error creating user record:', error);
+        }
+        
+        // Redirect to routine selection for new users
+        router.push("/routines/select");
       } else {
         console.error("Verification incomplete:", result);
         setVerificationError(

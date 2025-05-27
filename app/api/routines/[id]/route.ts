@@ -64,6 +64,16 @@ export async function PATCH(request: NextRequest) {
           { error: "Routine is already finished." },
           { status: 400 }
         );
+      } else if (currentRoutine.status === "paused") {
+        return NextResponse.json(
+          { error: "Routine is paused." },
+          { status: 400 }
+        );
+      } else if (currentRoutine.status === "abandoned") {
+        return NextResponse.json(
+          { error: "Routine is abandoned." },
+          { status: 400 }
+        );
       }
 
       if (currentRoutine.currentStage >= currentRoutine.stages - 1) {
@@ -73,6 +83,13 @@ export async function PATCH(request: NextRequest) {
         });
         return NextResponse.json(routine);
       } else {
+        const currentThreshold = currentRoutine.thresholds[currentRoutine.currentStage - 1];
+        if (currentRoutine.currentStageProgress < currentThreshold) {
+          return NextResponse.json(
+            { error: "Current stage progress is insufficient to advance." },
+            { status: 400 }
+          );
+        }
         // Advance to next stage
         const routine = await updateRoutineById(clerkUserId, id, {
           currentStage: currentRoutine.currentStage + 1

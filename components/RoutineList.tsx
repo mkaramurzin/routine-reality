@@ -106,7 +106,11 @@ const RoutineList: React.FC = () => {
         <p className="text-default-600 mb-6">
           Start your wellness journey by adding your first routine.
         </p>
-        <Button color="primary" variant="solid">
+        <Button 
+          color="primary" 
+          variant="solid"
+          onPress={() => router.push('/routines/select')}
+        >
           Add Routine
         </Button>
       </div>
@@ -117,7 +121,7 @@ const RoutineList: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-default-900">Your Routines</h2>
-        <Button color="primary" variant="flat" size="sm">
+        <Button color="primary" variant="flat" size="sm" onPress={() => router.push('/routines/select')}>
           Add Routine
         </Button>
       </div>
@@ -184,14 +188,14 @@ const RoutineList: React.FC = () => {
                   </span>
                 </div>
                 
-                <Button
+                {/* <Button
                   variant="light"
                   size="sm"
                   endContent={<ArrowRight className="h-3 w-3" />}
                   className="text-primary-600"
                 >
                   View
-                </Button>
+                </Button> */}
               </div>
             </CardBody>
           </Card>

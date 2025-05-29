@@ -1,59 +1,112 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Progress } from "@heroui/progress";
 import { Trophy, ArrowRight, CheckCircle } from "lucide-react";
+import { Spinner } from "@heroui/spinner";
 
-interface Routine {
+interface RoutineProgress {
   id: string;
   title: string;
-  stages: number;
   currentStage: number;
+  totalStages: number;
+  currentStageProgress: number;
+  currentStageThreshold: number;
+  canAdvance: boolean;
+  isOnFinalStage: boolean;
   status: "active" | "paused" | "finished" | "abandoned";
+  overallProgressPercentage: number;
+  stageProgressPercentage: number;
+  tasksNeededToAdvance: number;
 }
 
 interface StageProgressionPanelProps {
-  routine: Routine;
+  routineId: string;
   onStageAdvancement: (routineId: string) => Promise<void>;
-  canAdvance?: boolean; // Optional prop to control when advancement is allowed
+  refreshTrigger?: number; // Trigger to refresh progress data
 }
 
 const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
-  routine,
+  routineId,
   onStageAdvancement,
-  canAdvance = true,
+  refreshTrigger,
 }) => {
+  const [progress, setProgress] = useState<RoutineProgress | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const isFinished = routine.status === "finished";
-  const isOnFinalStage = routine.currentStage >= routine.stages - 1;
-  const progressPercentage = ((routine.currentStage - 1) / (routine.stages - 1)) * 100;
+  // Fetch progress data
+  const fetchProgress = async () => {
+    try {
+      const response = await fetch(`/api/routines/${routineId}/progress`);
+      if (!response.ok) {
+        throw new Error(`Error fetching progress: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setProgress(data);
+    } catch (error) {
+      console.error("Error fetching routine progress:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchProgress();
+  }, [routineId]);
+
+  // Refresh progress when tasks change (called from parent)
+  useEffect(() => {
+    if (refreshTrigger) {
+      fetchProgress();
+    }
+  }, [refreshTrigger]);
 
   const handleAdvancement = async () => {
-    if (!canAdvance || isAdvancing || isFinished) return;
+    if (!progress?.canAdvance || isAdvancing || progress.status === "finished") return;
 
     setIsAdvancing(true);
     try {
-      await onStageAdvancement(routine.id);
+      await onStageAdvancement(routineId);
+      
+      // Refresh progress data after advancement
+      await fetchProgress();
       
       // Show success feedback
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error("Error advancing stage:", error);
-      // You could add error toast here
     } finally {
       setIsAdvancing(false);
     }
   };
 
-  // Don't render if routine is abandoned or paused
-  if (routine.status === "abandoned" || routine.status === "paused") {
+  if (loading) {
+    return (
+      <Card className="w-full border border-default-200 bg-gradient-to-br from-primary-50 to-secondary-50 shadow-md">
+        <CardBody className="flex items-center justify-center py-8">
+          <Spinner size="md" />
+          <p className="mt-2 text-default-600">Loading progress...</p>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  if (!progress) {
     return null;
   }
+
+  // Don't render if routine is abandoned or paused
+  if (progress.status === "abandoned" || progress.status === "paused") {
+    return null;
+  }
+
+  const isFinished = progress.status === "finished";
 
   return (
     <Card className="w-full border border-default-200 bg-gradient-to-br from-primary-50 to-secondary-50 shadow-md">
@@ -91,7 +144,7 @@ const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
               Congratulations! 🎉
             </p>
             <p className="text-default-600">
-              You've successfully completed all {routine.stages} stages of "{routine.title}"
+              You've successfully completed all {progress.totalStages} stages of "{progress.title}"
             </p>
           </div>
         ) : (
@@ -99,54 +152,70 @@ const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
             {/* Stage indicator */}
             <div className="text-center">
               <p className="text-2xl font-bold text-primary-600">
-                Stage {routine.currentStage} of {routine.stages}
+                Stage {progress.currentStage} of {progress.totalStages}
               </p>
               <p className="text-default-600 mt-1">
-                {canAdvance ? "You've unlocked the next stage!" : "Complete your current tasks to advance"}
+                {progress.canAdvance 
+                  ? "You've unlocked the next stage!" 
+                  : `Complete ${progress.tasksNeededToAdvance} more task${progress.tasksNeededToAdvance !== 1 ? 's' : ''} to advance`
+                }
               </p>
             </div>
 
-            {/* Progress bar */}
+            {/* Current stage progress */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-default-600">
-                <span>Progress</span>
-                <span>{Math.round(progressPercentage)}%</span>
+                <span>Current Stage Progress</span>
+                <span>{progress.currentStageProgress} / {progress.currentStageThreshold} tasks</span>
               </div>
               <Progress 
-                value={progressPercentage} 
+                value={progress.stageProgressPercentage} 
                 color="primary" 
                 className="w-full"
                 size="md"
               />
             </div>
 
-            {/* Stage advancement button */}
-            {canAdvance && (
-              <div className="flex justify-center pt-2">
-                <Button
-                  color={isOnFinalStage ? "success" : "primary"}
-                  variant="solid"
-                  size="lg"
-                  onClick={handleAdvancement}
-                  isLoading={isAdvancing}
-                  endContent={
-                    isOnFinalStage ? (
-                      <Trophy className="h-5 w-5" />
-                    ) : (
-                      <ArrowRight className="h-5 w-5" />
-                    )
-                  }
-                  className="font-medium px-8"
-                >
-                  {isAdvancing
-                    ? "Advancing..."
-                    : isOnFinalStage
-                    ? "Finish Routine"
-                    : "Go to Next Stage"
-                  }
-                </Button>
+            {/* Overall routine progress */}
+            {/* <div className="space-y-2">
+              <div className="flex justify-between text-sm text-default-600">
+                <span>Overall Progress</span>
+                <span>{Math.round(progress.overallProgressPercentage)}%</span>
               </div>
-            )}
+              <Progress 
+                value={progress.overallProgressPercentage} 
+                color="secondary" 
+                className="w-full"
+                size="sm"
+              />
+            </div> */}
+
+            {/* Stage advancement button */}
+            <div className="flex justify-center pt-2">
+              <Button
+                color={progress.isOnFinalStage ? "success" : "primary"}
+                variant="solid"
+                size="lg"
+                onClick={progress.canAdvance ? handleAdvancement : undefined}
+                isLoading={isAdvancing}
+                endContent={
+                  progress.isOnFinalStage ? (
+                    <Trophy className="h-5 w-5" />
+                  ) : (
+                    <ArrowRight className="h-5 w-5" />
+                  )
+                }
+                className={`font-medium px-8 ${!progress.canAdvance ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!progress.canAdvance}
+              >
+                {isAdvancing
+                  ? "Advancing..."
+                  : progress.isOnFinalStage
+                  ? "Finish Routine"
+                  : "Go to Next Stage"
+                }
+              </Button>
+            </div>
           </div>
         )}
       </CardBody>

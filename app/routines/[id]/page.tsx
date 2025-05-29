@@ -35,6 +35,7 @@ export default function RoutineDetailPage() {
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [progressRefreshTrigger, setProgressRefreshTrigger] = useState(0);
 
   // Fetch routine data on mount
   useEffect(() => {
@@ -61,10 +62,17 @@ export default function RoutineDetailPage() {
     try {
       const updatedRoutine = await advanceRoutineStage(routineId);
       setRoutine(updatedRoutine);
+      // Trigger progress refresh
+      setProgressRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error("Error advancing stage:", err);
       throw err; // Re-throw to let component handle it
     }
+  };
+
+  // Function to trigger progress refresh when tasks are updated
+  const handleTaskUpdate = () => {
+    setProgressRefreshTrigger(prev => prev + 1);
   };
 
   // Format dates for display
@@ -134,19 +142,16 @@ export default function RoutineDetailPage() {
         <div className="grid gap-6">
           {/* Stage Progression Panel */}
           <StageProgressionPanel
-            routine={{
-              id: routine.id,
-              title: routine.title,
-              stages: routine.stages,
-              currentStage: routine.currentStage,
-              status: routine.status,
-            }}
+            routineId={routine.id}
             onStageAdvancement={handleStageAdvancement}
-            canAdvance={routine.status === "active"}
+            refreshTrigger={progressRefreshTrigger}
           />
 
           {/* Today's Tasks Section */}
-          <RoutineTaskList routineId={routine.id} />
+          <RoutineTaskList 
+            routineId={routine.id} 
+            onTaskUpdate={handleTaskUpdate}
+          />
 
           {/* Routine Information */}
           <Card className="shadow-md">

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRoutineById } from "@/lib/queries/getRoutineById";
 import { updateRoutineById } from "@/lib/queries/updateRoutineById";
 import { deleteRoutineById } from "@/lib/queries/deleteRoutineById";
+import { checkStageAdvancementEligibility } from "@/lib/queries/updateRoutineProgress";
 
 // Helper to extract route param
 function getIdFromUrl(request: NextRequest): string | null {
@@ -76,23 +77,36 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      if (currentRoutine.currentStage >= currentRoutine.stages - 1) {
+      // Check advancement eligibility
+      const eligibility = await checkStageAdvancementEligibility(clerkUserId, id);
+      
+      if (!eligibility) {
+        return NextResponse.json(
+          { error: "Unable to check advancement eligibility." },
+          { status: 500 }
+        );
+      }
+
+      if (!eligibility.canAdvance) {
+        return NextResponse.json(
+          { error: eligibility.reason },
+          { status: 400 }
+        );
+      }
+
+      // Check if user is on the final stage
+      if (eligibility.isOnFinalStage) {
         // User is on the final stage, mark as finished
         const routine = await updateRoutineById(clerkUserId, id, {
-          status: "finished"
+          status: "finished",
+          endDate: new Date(), // Set completion date
         });
         return NextResponse.json(routine);
       } else {
-        const currentThreshold = currentRoutine.thresholds[currentRoutine.currentStage - 1];
-        if (currentRoutine.currentStageProgress < currentThreshold) {
-          return NextResponse.json(
-            { error: "Current stage progress is insufficient to advance." },
-            { status: 400 }
-          );
-        }
-        // Advance to next stage
+        // Advance to next stage and reset progress
         const routine = await updateRoutineById(clerkUserId, id, {
-          currentStage: currentRoutine.currentStage + 1
+          currentStage: currentRoutine.currentStage + 1,
+          currentStageProgress: 0, // Reset progress for new stage
         });
         return NextResponse.json(routine);
       }

@@ -18,9 +18,10 @@ interface Task {
 
 interface RoutineTaskListProps {
   routineId: string;
+  onTaskUpdate?: () => void; // Callback to notify parent of task updates
 }
 
-const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId }) => {
+const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId, onTaskUpdate }) => {
   const [activeTasks, setActiveTasks] = useState<Task[]>([]);
   const [historyTasks, setHistoryTasks] = useState<Task[]>([]);
   const [unmarkedTasks, setUnmarkedTasks] = useState<Task[]>([]);
@@ -136,6 +137,10 @@ const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId }) => {
       setActiveTasks((prevTasks) =>
         prevTasks.map((task) => (task.id === taskId ? updatedTask : task))
       );
+
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
     } catch (err) {
       console.error("Error completing task:", err);
       setError((err as Error).message);
@@ -166,6 +171,10 @@ const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId }) => {
       setActiveTasks((prevTasks) =>
         prevTasks.map((task) => (task.id === taskId ? updatedTask : task))
       );
+
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
     } catch (err) {
       console.error("Error marking task as missed:", err);
       setError((err as Error).message);
@@ -197,6 +206,10 @@ const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId }) => {
       setActiveTasks((prevTasks) =>
         prevTasks.map((task) => (task.id === taskId ? updatedTask : task))
       );
+
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
     } catch (err) {
       console.error("Error resetting task:", err);
       setError((err as Error).message);

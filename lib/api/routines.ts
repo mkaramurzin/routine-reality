@@ -72,4 +72,20 @@ export async function getUserRoutines(): Promise<Routine[]> {
   }
 
   return response.json();
+}
+
+export async function skipRoutineForDay(routineId: string): Promise<{ message: string; skippedCount: number }> {
+  const response = await fetch(`/api/routines/${routineId}/skip`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to skip routine");
+  }
+
+  return response.json();
 } 

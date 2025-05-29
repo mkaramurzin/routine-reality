@@ -129,7 +129,7 @@ export const taskHistory = pgTable("task_history", {
     title: text("title").notNull(),
     description: text("description"),
     isOptional: boolean("is_optional").default(false),
-    status: text("status", { enum: ["completed", "missed"] }).notNull(),
+    status: text("status", { enum: ["completed", "missed", "skipped"] }).notNull(),
     scheduledFor: timestamp("scheduled_for").notNull(),
     completedAt: timestamp("completed_at"),
     missedAt: timestamp("missed_at"),

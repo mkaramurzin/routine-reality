@@ -10,7 +10,7 @@ interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: "todo" | "in_progress" | "completed" | "missed";
+  status: "todo" | "in_progress" | "completed" | "missed" | "skipped";
   scheduledFor?: string;
   completedAt?: string;
   missedAt?: string;
@@ -217,7 +217,7 @@ const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId, onTaskUpda
   };
 
   // Render task list for each tab
-  const renderTaskList = (tasks: Task[], loading: boolean, emptyMessage: string, showActions: boolean = false) => {
+  const renderTaskList = (tasks: Task[], loading: boolean, emptyMessage: string, showActions: boolean = false, isHistorical: boolean = false) => {
     if (loading) {
       return (
         <div className="flex justify-center items-center py-12">
@@ -240,9 +240,10 @@ const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId, onTaskUpda
           <TaskCard 
             key={task.id} 
             task={task} 
-            onComplete={showActions ? handleTaskComplete : () => {}}
-            onMissed={showActions ? handleTaskMissed : () => {}}
-            onUndo={showActions ? handleTaskUndo : () => {}}
+            onComplete={showActions ? handleTaskComplete : undefined}
+            onMissed={showActions ? handleTaskMissed : undefined}
+            onUndo={showActions ? handleTaskUndo : undefined}
+            isHistorical={isHistorical}
           />
         ))}
       </div>
@@ -288,7 +289,7 @@ const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId, onTaskUpda
             </div>
           }
         >
-          {renderTaskList(historyTasks, historyLoading, "No task history available for this routine.")}
+          {renderTaskList(historyTasks, historyLoading, "No task history available for this routine.", false, true)}
         </Tab>
         
         <Tab 

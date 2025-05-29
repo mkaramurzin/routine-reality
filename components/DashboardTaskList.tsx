@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import TaskCard from "./TaskCard";
 import { Spinner } from "@heroui/spinner";
 
@@ -15,33 +15,43 @@ interface DashboardTaskListProps {
   userId: string;
 }
 
-const DashboardTaskList: React.FC<DashboardTaskListProps> = ({ userId }) => {
+export interface DashboardTaskListRef {
+  refreshTasks: () => Promise<void>;
+}
+
+const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProps>(({ userId }, ref) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch active tasks function
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      // Fetch tasks from all user routines by not providing a routineId
+      const response = await fetch(`/api/tasks?type=active`);
+      
+      if (!response.ok) {
+        throw new Error(`Error fetching tasks: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setTasks(data);
+    } catch (err) {
+      setError((err as Error).message);
+      console.error("Error fetching tasks:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Expose refresh function to parent components
+  useImperativeHandle(ref, () => ({
+    refreshTasks: fetchTasks
+  }));
+
   // Fetch active tasks on component mount
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        setLoading(true);
-        // Fetch tasks from all user routines by not providing a routineId
-        const response = await fetch(`/api/tasks?type=active`);
-        
-        if (!response.ok) {
-          throw new Error(`Error fetching tasks: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        setTasks(data);
-      } catch (err) {
-        setError((err as Error).message);
-        console.error("Error fetching tasks:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchTasks();
   }, []);
 
@@ -176,6 +186,6 @@ const DashboardTaskList: React.FC<DashboardTaskListProps> = ({ userId }) => {
       </div>
     </div>
   );
-};
+});
 
 export default DashboardTaskList; 

@@ -28,7 +28,7 @@ const SkipConfirmationModal: React.FC<SkipConfirmationModalProps> = ({
             <ModalHeader className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-warning-500" />
-                <h2 className="text-lg font-semibold">Skip Routine</h2>
+                <h2 className="text-lg font-semibold">Not feeling it today?</h2>
               </div>
             </ModalHeader>
             <ModalBody>

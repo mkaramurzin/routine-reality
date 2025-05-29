@@ -1,21 +1,22 @@
 import React from "react";
 import { Button } from "@heroui/button";
-import { CheckCircle, XCircle, RotateCcw } from "lucide-react";
+import { CheckCircle, XCircle, RotateCcw, SkipForward } from "lucide-react";
 
 interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: "todo" | "in_progress" | "completed" | "missed";
+  status: "todo" | "in_progress" | "completed" | "missed" | "skipped";
   categoryColor?: string; // Optional color property for the task
 }
 
 interface TaskCardProps {
   task: Task;
-  onComplete: (taskId: string) => void;
-  onMissed: (taskId: string) => void; // New prop for missed action
-  onUndo: (taskId: string) => void; // New prop for undoing a task status
+  onComplete?: (taskId: string) => void;
+  onMissed?: (taskId: string) => void; // New prop for missed action
+  onUndo?: (taskId: string) => void; // New prop for undoing a task status
   currentTheme?: "light" | "dark"; // Theme prop for adjusting styles
+  isHistorical?: boolean; // Flag to indicate if this is a historical task (no actions available)
 }
 
 interface StyleProps {
@@ -31,10 +32,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onComplete, 
   onMissed, 
   onUndo,
-  currentTheme = "dark" 
+  currentTheme = "dark",
+  isHistorical = false
 }) => {
   const isCompleted = task.status === "completed";
   const isMissed = task.status === "missed";
+  const isSkipped = task.status === "skipped";
   const cardColor = task.categoryColor || "#1E90FF"; // Use provided color or default to blue
   
   // Calculate background color based on theme and status
@@ -76,6 +79,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
         borderLeft: `3px solid #888888`
       };
     }
+
+    if (isSkipped) {
+      return {
+        ...baseStyles,
+        opacity: 0.6,
+        background: currentTheme === "light"
+          ? `linear-gradient(to right, #f59e0b15, #f59e0b05)`
+          : `linear-gradient(to right, #f59e0b30, #f59e0b15)`,
+        borderLeft: `3px solid #f59e0b`
+      };
+    }
     
     return baseStyles;
   };
@@ -93,8 +107,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
         opacity: styles.opacity
       }}
     >
-      {/* Undo button that appears on hover for completed/missed tasks */}
-      {(isCompleted || isMissed) && (
+      {/* Undo button that appears on hover for completed/missed tasks (not for historical or skipped) */}
+      {!isHistorical && !isSkipped && (isCompleted || isMissed) && onUndo && (
         <div className="absolute top-0 right-0 bottom-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pr-4">
           <Button
             onClick={() => onUndo(task.id)}
@@ -112,17 +126,33 @@ const TaskCard: React.FC<TaskCardProps> = ({
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <div 
-              className={`w-3 h-3 rounded-full ${isCompleted ? 'bg-green-500' : isMissed ? 'bg-gray-400' : ''}`} 
-              style={{ backgroundColor: !isCompleted && !isMissed ? cardColor : undefined }}
+              className={`w-3 h-3 rounded-full ${
+                isCompleted ? 'bg-green-500' : 
+                isMissed ? 'bg-gray-400' : 
+                isSkipped ? 'bg-amber-500' : ''
+              }`} 
+              style={{ backgroundColor: !isCompleted && !isMissed && !isSkipped ? cardColor : undefined }}
             ></div>
             <h3 
-              className={`font-medium text-lg text-default-900 ${isCompleted ? 'line-through opacity-80' : ''} ${isMissed ? 'opacity-70' : ''}`}
+              className={`font-medium text-lg text-default-900 ${
+                isCompleted ? 'line-through opacity-80' : ''
+              } ${
+                isMissed ? 'opacity-70' : ''
+              } ${
+                isSkipped ? 'opacity-75' : ''
+              }`}
             >
               {task.title}
             </h3>
           </div>
           {task.description && (
-            <p className={`text-default-600 mt-1 pl-5 ${isCompleted ? 'opacity-80' : ''} ${isMissed ? 'opacity-70' : ''}`}>
+            <p className={`text-default-600 mt-1 pl-5 ${
+              isCompleted ? 'opacity-80' : ''
+            } ${
+              isMissed ? 'opacity-70' : ''
+            } ${
+              isSkipped ? 'opacity-75' : ''
+            }`}>
               {task.description}
             </p>
           )}
@@ -139,7 +169,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
               <XCircle className="w-5 h-5 mr-1" />
               <span className="text-sm">Missed</span>
             </div>
-          ) : (
+          ) : isSkipped ? (
+            <div className="flex items-center text-amber-600">
+              <SkipForward className="w-5 h-5 mr-1" />
+              <span className="text-sm">Skipped</span>
+            </div>
+          ) : !isHistorical && onComplete && onMissed ? (
             <div className="flex gap-2">
               <Button 
                 onClick={() => onComplete(task.id)}
@@ -161,7 +196,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 Miss
               </Button>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

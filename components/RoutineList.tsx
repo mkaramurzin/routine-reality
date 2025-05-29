@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
@@ -26,9 +26,19 @@ interface Routine {
   status: "active" | "paused" | "finished" | "abandoned";
   createdAt: string;
   updatedAt: string;
+  todayTaskCount?: number;
+  hasTasksToday?: boolean;
 }
 
-const RoutineList: React.FC = () => {
+interface RoutineListProps {
+  onRoutineSkipped?: () => Promise<void>;
+}
+
+export interface RoutineListRef {
+  refreshRoutines: () => Promise<void>;
+}
+
+const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSkipped }, ref) => {
   const router = useRouter();
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,20 +50,25 @@ const RoutineList: React.FC = () => {
   const [isSkipModalOpen, setIsSkipModalOpen] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
 
-  useEffect(() => {
-    const fetchRoutines = async () => {
-      try {
-        setLoading(true);
-        const data = await getUserRoutines();
-        setRoutines(data);
-      } catch (err) {
-        setError((err as Error).message);
-        console.error("Error fetching routines:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchRoutines = async () => {
+    try {
+      setLoading(true);
+      const data = await getUserRoutines();
+      setRoutines(data);
+    } catch (err) {
+      setError((err as Error).message);
+      console.error("Error fetching routines:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Expose refresh function to parent components
+  useImperativeHandle(ref, () => ({
+    refreshRoutines: fetchRoutines
+  }));
+
+  useEffect(() => {
     fetchRoutines();
   }, []);
 
@@ -84,6 +99,9 @@ const RoutineList: React.FC = () => {
   };
 
   const handleRoutineClick = (routine: Routine) => {
+    // Don't allow interaction if routine has no tasks today
+    if (!routine.hasTasksToday) return;
+    
     setSelectedRoutine(routine);
     setIsActionsModalOpen(true);
   };
@@ -115,7 +133,10 @@ const RoutineList: React.FC = () => {
       setIsSkipModalOpen(false);
       setSelectedRoutine(null);
       
-      // Optionally refresh the dashboard or show updated state
+      // Trigger refresh of dashboard tasks
+      if (onRoutineSkipped) {
+        await onRoutineSkipped();
+      }
     } catch (error) {
       console.error("Error skipping routine:", error);
       addToast({
@@ -132,6 +153,10 @@ const RoutineList: React.FC = () => {
     setIsActionsModalOpen(false);
     setIsSkipModalOpen(false);
     setSelectedRoutine(null);
+  };
+
+  const isRoutineDisabled = (routine: Routine) => {
+    return routine.status === "active" && !routine.hasTasksToday;
   };
 
   if (loading) {
@@ -191,8 +216,12 @@ const RoutineList: React.FC = () => {
           {routines.map((routine) => (
             <Card
               key={routine.id}
-              className="shadow-md hover:shadow-lg transition-shadow cursor-pointer"
-              isPressable
+              className={`shadow-md transition-shadow ${
+                isRoutineDisabled(routine) 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:shadow-lg cursor-pointer'
+              }`}
+              isPressable={!isRoutineDisabled(routine)}
               onPress={() => handleRoutineClick(routine)}
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -200,21 +229,42 @@ const RoutineList: React.FC = () => {
                   {routine.status === "finished" ? (
                     <Trophy className="h-5 w-5 text-amber-500" />
                   ) : (
-                    <div className="w-5 h-5 rounded-full border-2 border-primary-400 flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-primary-500"></div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      isRoutineDisabled(routine)
+                        ? 'border-gray-300'
+                        : 'border-primary-400'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${
+                        isRoutineDisabled(routine)
+                          ? 'bg-gray-300'
+                          : 'bg-primary-500'
+                      }`}></div>
                     </div>
                   )}
-                  <h3 className="font-semibold text-default-900 truncate">
+                  <h3 className={`font-semibold truncate ${
+                    isRoutineDisabled(routine)
+                      ? 'text-gray-500'
+                      : 'text-default-900'
+                  }`}>
                     {routine.title}
                   </h3>
                 </div>
-                <p className={`text-xs font-medium ${getStatusColor(routine.status)}`}>
-                  {routine.status.charAt(0).toUpperCase() + routine.status.slice(1)}
-                </p>
+                <div className="flex flex-col items-end">
+                  <p className={`text-xs font-medium ${getStatusColor(routine.status)}`}>
+                    {routine.status.charAt(0).toUpperCase() + routine.status.slice(1)}
+                  </p>
+                  {isRoutineDisabled(routine) && (
+                    <p className="text-xs text-gray-400 mt-1">No tasks today</p>
+                  )}
+                </div>
               </CardHeader>
 
               <CardBody className="pt-2 space-y-4">
-                <p className="text-sm text-default-600 line-clamp-2">
+                <p className={`text-sm line-clamp-2 ${
+                  isRoutineDisabled(routine)
+                    ? 'text-gray-500'
+                    : 'text-default-600'
+                }`}>
                   {routine.routineInfo}
                 </p>
 
@@ -227,7 +277,7 @@ const RoutineList: React.FC = () => {
                     </div>
                     <Progress
                       value={getProgressPercentage(routine)}
-                      color="primary"
+                      color={isRoutineDisabled(routine) ? "default" : "primary"}
                       size="sm"
                       className="w-full"
                     />
@@ -273,6 +323,6 @@ const RoutineList: React.FC = () => {
       />
     </>
   );
-};
+});
 
 export default RoutineList; 

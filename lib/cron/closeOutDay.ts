@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { db } from "@/lib/db";
 import { users, routines, activeTasks, unmarkedTasks, taskHistory, tasks } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { wasStageRecentlyAdvanced, RoutineTimeline } from "@/lib/routines/timeline";
 
 export async function closeOutDayForAllUsers() {
   // Get all users with active routines
@@ -30,6 +31,30 @@ export async function closeOutDayForAllUsers() {
           `Skipping user ${user.id} because it is not midnight in their timezone (current time: ${userNow.toFormat("HH:mm")})`
         );
         continue;
+      }
+
+      // Check if any routines need their progress reset after stage advancement
+      const userRoutines = await db.query.routines.findMany({
+        where: (r) => eq(r.userId, user.id),
+      });
+
+      for (const routine of userRoutines) {
+        if (routine.status === "active") {
+          const timeline = (routine.timeline as RoutineTimeline) || [];
+          
+          // If stage was recently advanced, reset the progress
+          if (wasStageRecentlyAdvanced(timeline) && routine.currentStageProgress > 0) {
+            await db
+              .update(routines)
+              .set({ 
+                currentStageProgress: 0,
+                updatedAt: new Date() 
+              })
+              .where(eq(routines.id, routine.id));
+            
+            console.log(`Reset progress for routine ${routine.id} after stage advancement`);
+          }
+        }
       }
 
       const userYesterday = userNow.minus({ days: 1 });

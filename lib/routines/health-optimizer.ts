@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { routines, taskSets, tasks, users, activeTasks } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { DateTime } from "luxon";
+import { createInitialTimeline } from "@/lib/routines/timeline";
 
 export async function createHealthOptimizerRoutine(clerkUserId: string) {
   // Find the user by their Clerk ID
@@ -18,15 +19,16 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
   const [routine] = await db.insert(routines).values({
     userId: user.id,
     title: "Health Optimizer",
-    routineInfo: "3-week routine for peak physical performance",
-    routineType: "standard",
+    routineInfo: "Build lasting health habits with nutrition, exercise, and recovery",
+    routineType: "template",
     startDate: new Date(),
-    endDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     stages: 3,
-    thresholds: [7, 14, 21],
+    thresholds: [3, 14, 21], // Days to advance to next stage
     currentStage: 1,
     currentStageProgress: 0,
     status: "active",
+    timeline: createInitialTimeline(),
   }).returning();
 
   // Create taskSets for each week

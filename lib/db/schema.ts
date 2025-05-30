@@ -5,6 +5,7 @@ import {
     uuid,
     integer,
     boolean,
+    jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -43,6 +44,7 @@ export const routines = pgTable("routines", {
     currentStage: integer("current_stage").notNull(),
     currentStageProgress: integer("current_stage_progress").notNull(),
     status: text("status", { enum: ["active", "paused", "finished", "abandoned"] }).default("active"),
+    timeline: jsonb("timeline").default([]).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { routines, taskSets, tasks, users, activeTasks } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { DateTime } from "luxon";
+import { createInitialTimeline } from "@/lib/routines/timeline";
 
 export async function createMonkModeRoutine(clerkUserId: string) {
   // Find the user by their Clerk ID
@@ -17,16 +18,17 @@ export async function createMonkModeRoutine(clerkUserId: string) {
   // Create the routine
   const [routine] = await db.insert(routines).values({
     userId: user.id,
-    title: "|Monk Mode|",
-    routineInfo: "3-week routine to get you success-oriented",
-    routineType: "standard",
+    title: "Monk Mode",
+    routineInfo: "Achieve deep focus and productivity through disciplined daily habits",
+    routineType: "template",
     startDate: new Date(),
-    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     stages: 3,
-    thresholds: [21, 28, 28],
+    thresholds: [7, 14, 21], // Days to advance to next stage
     currentStage: 1,
     currentStageProgress: 0,
     status: "active",
+    timeline: createInitialTimeline(),
   }).returning();
 
   // Create taskSets for each week

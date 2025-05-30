@@ -16,6 +16,7 @@ export async function getUserRoutines(clerkUserId: string) {
       currentStage: routines.currentStage,
       currentStageProgress: routines.currentStageProgress,
       status: routines.status,
+      timeline: routines.timeline,
       createdAt: routines.createdAt,
       updatedAt: routines.updatedAt,
     })

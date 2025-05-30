@@ -4,6 +4,7 @@ import { getRoutineById } from "@/lib/queries/getRoutineById";
 import { updateRoutineById } from "@/lib/queries/updateRoutineById";
 import { deleteRoutineById } from "@/lib/queries/deleteRoutineById";
 import { checkStageAdvancementEligibility } from "@/lib/queries/updateRoutineProgress";
+import { addTimelineEvent, RoutineTimeline } from "@/lib/routines/timeline";
 
 // Helper to extract route param
 function getIdFromUrl(request: NextRequest): string | null {
@@ -47,18 +48,62 @@ export async function PATCH(request: NextRequest) {
   const body = await request.json();
 
   try {
-    // Handle stage advancement action
-    if (body.action === "advanceStage") {
-      // First, get the current routine to check ownership and current state
-      const currentRoutine = await getRoutineById(clerkUserId, id);
-      
-      if (!currentRoutine) {
+    // First, get the current routine to check ownership and current state
+    const currentRoutine = await getRoutineById(clerkUserId, id);
+    
+    if (!currentRoutine) {
+      return NextResponse.json(
+        { error: "Routine not found." },
+        { status: 404 }
+      );
+    }
+
+    // Handle direct stage increment (new UI flow)
+    if (body.currentStage && body.currentStage > currentRoutine.currentStage) {
+      // Validate that advancement is possible
+      if (currentRoutine.status === "finished") {
         return NextResponse.json(
-          { error: "Routine not found." },
-          { status: 404 }
+          { error: "Routine is already finished." },
+          { status: 400 }
+        );
+      } else if (currentRoutine.status === "paused") {
+        return NextResponse.json(
+          { error: "Routine is paused." },
+          { status: 400 }
+        );
+      } else if (currentRoutine.status === "abandoned") {
+        return NextResponse.json(
+          { error: "Routine is abandoned." },
+          { status: 400 }
         );
       }
 
+      // Validate that new stage is valid
+      if (body.currentStage > currentRoutine.stages) {
+        return NextResponse.json(
+          { error: "Invalid stage number." },
+          { status: 400 }
+        );
+      }
+
+      // Update timeline with stage advancement
+      const currentTimeline = (currentRoutine.timeline as RoutineTimeline) || [];
+      const updatedTimeline = addTimelineEvent(currentTimeline, {
+        type: "stage_advanced",
+        stageNumber: body.currentStage,
+      });
+
+      // Update routine with new stage but don't reset progress yet (cron will handle it)
+      const routine = await updateRoutineById(clerkUserId, id, {
+        currentStage: body.currentStage,
+        timeline: updatedTimeline,
+      });
+
+      return NextResponse.json(routine);
+    }
+
+    // Handle stage advancement action (legacy flow)
+    if (body.action === "advanceStage") {
       // Validate that advancement is possible
       if (currentRoutine.status === "finished") {
         return NextResponse.json(
@@ -97,16 +142,30 @@ export async function PATCH(request: NextRequest) {
       // Check if user is on the final stage
       if (eligibility.isOnFinalStage) {
         // User is on the final stage, mark as finished
+        const currentTimeline = (currentRoutine.timeline as RoutineTimeline) || [];
+        const updatedTimeline = addTimelineEvent(currentTimeline, {
+          type: "finished",
+        });
+        
         const routine = await updateRoutineById(clerkUserId, id, {
           status: "finished",
           endDate: new Date(), // Set completion date
+          timeline: updatedTimeline,
         });
         return NextResponse.json(routine);
       } else {
-        // Advance to next stage and reset progress
+        // Advance to next stage and update timeline
+        const currentTimeline = (currentRoutine.timeline as RoutineTimeline) || [];
+        const newStage = currentRoutine.currentStage + 1;
+        const updatedTimeline = addTimelineEvent(currentTimeline, {
+          type: "stage_advanced",
+          stageNumber: newStage,
+        });
+        
         const routine = await updateRoutineById(clerkUserId, id, {
-          currentStage: currentRoutine.currentStage + 1,
+          currentStage: newStage,
           currentStageProgress: 0, // Reset progress for new stage
+          timeline: updatedTimeline,
         });
         return NextResponse.json(routine);
       }
@@ -133,6 +192,31 @@ export async function PATCH(request: NextRequest) {
     }
     if (updateData.endDate) {
       updateData.endDate = new Date(updateData.endDate as string);
+    }
+
+    // If status is being changed, update timeline
+    if (updateData.status && updateData.status !== currentRoutine.status) {
+      const currentTimeline = (currentRoutine.timeline as RoutineTimeline) || [];
+      let timelineEvent: { type: string } | null = null;
+
+      switch (updateData.status) {
+        case "paused":
+          timelineEvent = { type: "paused" };
+          break;
+        case "active":
+          if (currentRoutine.status === "paused") {
+            timelineEvent = { type: "resumed" };
+          }
+          break;
+        case "finished":
+          timelineEvent = { type: "finished" };
+          break;
+      }
+
+      if (timelineEvent) {
+        const updatedTimeline = addTimelineEvent(currentTimeline, timelineEvent as any);
+        updateData.timeline = updatedTimeline;
+      }
     }
 
     const routine = await updateRoutineById(clerkUserId, id, updateData);

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     if (type === "active") {
       if (routineId) {
         // Get tasks for specific routine
-        const tasks = await getActiveTasksForToday(clerkUserId, routineId, new Date());
+        const tasks = await getActiveTasksForToday(clerkUserId, routineId);
         return NextResponse.json(tasks);
       } else {
         // Get tasks for all user routines
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         
         for (const routine of userRoutines) {
           try {
-            const tasks = await getActiveTasksForToday(clerkUserId, routine.id, new Date());
+            const tasks = await getActiveTasksForToday(clerkUserId, routine.id);
             allTasks.push(...tasks);
           } catch (error) {
             // Log error but continue with other routines

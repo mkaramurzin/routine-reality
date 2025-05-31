@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@heroui/button";
-import { CheckCircle, XCircle, RotateCcw, SkipForward } from "lucide-react";
+import { CheckCircle, XCircle, RotateCcw, SkipForward, Lock } from "lucide-react";
 
 interface Task {
   id: string;
@@ -17,6 +17,8 @@ interface TaskCardProps {
   onUndo?: (taskId: string) => void; // New prop for undoing a task status
   currentTheme?: "light" | "dark"; // Theme prop for adjusting styles
   isHistorical?: boolean; // Flag to indicate if this is a historical task (no actions available)
+  isImmutable?: boolean; // Flag to indicate if this task is immutable/locked
+  stageNumber?: number; // Stage number for immutable tasks
 }
 
 interface StyleProps {
@@ -33,7 +35,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onMissed, 
   onUndo,
   currentTheme = "dark",
-  isHistorical = false
+  isHistorical = false,
+  isImmutable = false,
+  stageNumber
 }) => {
   const isCompleted = task.status === "completed";
   const isMissed = task.status === "missed";
@@ -56,6 +60,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
           boxShadow: `0 4px 6px -1px ${cardColor}30, 0 2px 4px -1px ${cardColor}20`,
           borderLeft: `3px solid ${cardColor}`
         };
+
+    // Special styling for immutable tasks
+    if (isImmutable) {
+      return {
+        ...baseStyles,
+        opacity: 0.6,
+        background: currentTheme === "light"
+          ? `linear-gradient(to right, #64748b15, #64748b05)`
+          : `linear-gradient(to right, #64748b30, #64748b15)`,
+        borderLeft: `3px solid #64748b`,
+        borderColor: currentTheme === "light" ? "#64748b30" : "#64748b50"
+      };
+    }
         
     // Modify styles based on status
     if (isCompleted) {
@@ -98,7 +115,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
   
   return (
     <div 
-      className="rounded-lg p-4 mb-3 border transition-all duration-300 hover:shadow-lg group relative" 
+      className={`rounded-lg p-4 mb-3 border transition-all duration-300 group relative ${
+        isImmutable ? 'cursor-not-allowed' : 'hover:shadow-lg'
+      }`} 
       style={{ 
         background: styles.background,
         borderLeft: styles.borderLeft,
@@ -107,8 +126,20 @@ const TaskCard: React.FC<TaskCardProps> = ({
         opacity: styles.opacity
       }}
     >
-      {/* Undo button that appears on hover for completed/missed tasks (not for historical or skipped) */}
-      {!isHistorical && !isSkipped && (isCompleted || isMissed) && onUndo && (
+      {/* Immutable indicator */}
+      {isImmutable && (
+        <div className="absolute top-2 right-2">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md text-xs">
+            <Lock className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+            <span className="text-slate-600 dark:text-slate-400">
+              Stage {stageNumber} - Locked
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Undo button that appears on hover for completed/missed tasks (not for historical, skipped, or immutable) */}
+      {!isHistorical && !isSkipped && !isImmutable && (isCompleted || isMissed) && onUndo && (
         <div className="absolute top-0 right-0 bottom-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pr-4">
           <Button
             onClick={() => onUndo(task.id)}
@@ -129,9 +160,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
               className={`w-3 h-3 rounded-full ${
                 isCompleted ? 'bg-green-500' : 
                 isMissed ? 'bg-gray-400' : 
-                isSkipped ? 'bg-amber-500' : ''
+                isSkipped ? 'bg-amber-500' :
+                isImmutable ? 'bg-slate-400' : ''
               }`} 
-              style={{ backgroundColor: !isCompleted && !isMissed && !isSkipped ? cardColor : undefined }}
+              style={{ backgroundColor: !isCompleted && !isMissed && !isSkipped && !isImmutable ? cardColor : undefined }}
             ></div>
             <h3 
               className={`font-medium text-lg text-default-900 ${
@@ -140,6 +172,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 isMissed ? 'opacity-70' : ''
               } ${
                 isSkipped ? 'opacity-75' : ''
+              } ${
+                isImmutable ? 'opacity-75' : ''
               }`}
             >
               {task.title}
@@ -152,6 +186,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
               isMissed ? 'opacity-70' : ''
             } ${
               isSkipped ? 'opacity-75' : ''
+            } ${
+              isImmutable ? 'opacity-75' : ''
             }`}>
               {task.description}
             </p>
@@ -159,7 +195,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
         </div>
         
         <div>
-          {isCompleted ? (
+          {isImmutable ? (
+            <div className="flex items-center text-slate-500">
+              <Lock className="w-4 h-4 mr-1" />
+              <span className="text-sm">Locked</span>
+            </div>
+          ) : isCompleted ? (
             <div className="flex items-center text-green-500 group-hover:invisible">
               <CheckCircle className="w-5 h-5 mr-1" />
               <span className="text-sm">Completed</span>

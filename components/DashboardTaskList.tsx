@@ -3,12 +3,16 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import TaskCard from "./TaskCard";
 import { Spinner } from "@heroui/spinner";
+import { addToast } from "@heroui/toast";
 
 interface Task {
   id: string;
   title: string;
   description: string | null;
   status: "todo" | "in_progress" | "completed" | "missed";
+  stageNumber?: number;
+  isImmutable?: boolean;
+  routineTitle?: string;
 }
 
 interface DashboardTaskListProps {
@@ -28,8 +32,8 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      // Fetch tasks from all user routines by not providing a routineId
-      const response = await fetch(`/api/tasks?type=active`);
+      // Fetch tasks with stage info for immutability checking
+      const response = await fetch(`/api/tasks?type=active&includeStageInfo=true`);
       
       if (!response.ok) {
         throw new Error(`Error fetching tasks: ${response.statusText}`);
@@ -70,6 +74,15 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.code === "TASK_IMMUTABLE") {
+          addToast({
+            title: "Task Locked",
+            description: "This task cannot be modified as it belongs to a previous stage.",
+            color: "warning",
+          });
+          return;
+        }
         throw new Error(`Error updating task: ${response.statusText}`);
       }
 
@@ -77,7 +90,7 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
       
       // Update task in local state
       setTasks((prevTasks) =>
-        prevTasks.map((task) => (task.id === taskId ? updatedTask : task))
+        prevTasks.map((task) => (task.id === taskId ? { ...task, ...updatedTask } : task))
       );
     } catch (err) {
       console.error("Error completing task:", err);
@@ -100,6 +113,15 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.code === "TASK_IMMUTABLE") {
+          addToast({
+            title: "Task Locked",
+            description: "This task cannot be modified as it belongs to a previous stage.",
+            color: "warning",
+          });
+          return;
+        }
         throw new Error(`Error updating task: ${response.statusText}`);
       }
 
@@ -107,7 +129,7 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
       
       // Update task in local state
       setTasks((prevTasks) =>
-        prevTasks.map((task) => (task.id === taskId ? updatedTask : task))
+        prevTasks.map((task) => (task.id === taskId ? { ...task, ...updatedTask } : task))
       );
     } catch (err) {
       console.error("Error marking task as missed:", err);
@@ -131,6 +153,15 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.code === "TASK_IMMUTABLE") {
+          addToast({
+            title: "Task Locked",
+            description: "This task cannot be modified as it belongs to a previous stage.",
+            color: "warning",
+          });
+          return;
+        }
         throw new Error(`Error updating task: ${response.statusText}`);
       }
 
@@ -138,7 +169,7 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
       
       // Update task in local state
       setTasks((prevTasks) =>
-        prevTasks.map((task) => (task.id === taskId ? updatedTask : task))
+        prevTasks.map((task) => (task.id === taskId ? { ...task, ...updatedTask } : task))
       );
     } catch (err) {
       console.error("Error resetting task:", err);
@@ -170,20 +201,54 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
     );
   }
 
+  // Separate immutable and mutable tasks for better UX
+  const mutableTasks = tasks.filter(task => !task.isImmutable);
+  const immutableTasks = tasks.filter(task => task.isImmutable);
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-default-900 mb-4">Active Tasks</h2>
+      
+      {/* Mutable tasks first */}
       <div className="space-y-2">
-        {tasks.map((task) => (
+        {mutableTasks.map((task) => (
           <TaskCard 
             key={task.id} 
             task={task} 
             onComplete={handleTaskComplete}
             onMissed={handleTaskMissed}
             onUndo={handleTaskUndo}
+            isImmutable={false}
           />
         ))}
       </div>
+
+      {/* Immutable tasks section */}
+      {immutableTasks.length > 0 && (
+        <>
+          <div className="border-t border-default-200 pt-4 mt-6">
+            <h3 className="text-lg font-medium text-default-700 mb-3 flex items-center gap-2">
+              <span>Previous Stage Tasks</span>
+              <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md text-slate-600 dark:text-slate-400">
+                Locked
+              </span>
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {immutableTasks.map((task) => (
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                onComplete={handleTaskComplete}
+                onMissed={handleTaskMissed}
+                onUndo={handleTaskUndo}
+                isImmutable={true}
+                stageNumber={task.stageNumber}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 });

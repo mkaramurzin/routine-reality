@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { updateActiveTaskById } from "@/lib/queries/updateActiveTask";
+import { isTaskImmutable } from "@/lib/routines/taskImmutability";
 
 // Extract task ID from /api/tasks/[id]
 function getTaskIdFromUrl(request: NextRequest): string | null {
@@ -24,6 +25,18 @@ export async function PATCH(request: NextRequest) {
   const url = new URL(request.url);
   if (url.searchParams.get("type") !== "active") {
     return NextResponse.json({ error: "Invalid type parameter." }, { status: 400 });
+  }
+
+  // Check if task is immutable before allowing updates
+  const taskIsImmutable = await isTaskImmutable(taskId, "active");
+  if (taskIsImmutable) {
+    return NextResponse.json(
+      { 
+        error: "This task is immutable and cannot be modified. It belongs to a previous stage that has been locked.",
+        code: "TASK_IMMUTABLE"
+      }, 
+      { status: 403 }
+    );
   }
 
   const body = await request.json();

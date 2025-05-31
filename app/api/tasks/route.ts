@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveTasksForToday } from "@/lib/queries/getActiveTasks";
+import { getActiveTasksWithStageInfo } from "@/lib/queries/getActiveTasksWithStageInfo";
 import { getUnmarkedTasks } from "@/lib/queries/getUnmarkedTasks";
 import { getTaskHistory } from "@/lib/queries/getTaskHistory";
 import { createActiveTask } from "@/lib/queries/createActiveTask";
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const type = url.searchParams.get("type");
   const routineId = url.searchParams.get("routineId");
+  const includeStageInfo = url.searchParams.get("includeStageInfo") === "true";
 
   if (!type) {
     return NextResponse.json({ error: "Missing type parameter." }, { status: 400 });
@@ -20,12 +22,16 @@ export async function GET(request: NextRequest) {
 
   try {
     if (type === "active") {
-      if (routineId) {
-        // Get tasks for specific routine
+      if (includeStageInfo) {
+        // Use enhanced query that includes stage info and immutability status
+        const tasks = await getActiveTasksWithStageInfo(clerkUserId, routineId || undefined);
+        return NextResponse.json(tasks);
+      } else if (routineId) {
+        // Get tasks for specific routine (legacy)
         const tasks = await getActiveTasksForToday(clerkUserId, routineId);
         return NextResponse.json(tasks);
       } else {
-        // Get tasks for all user routines
+        // Get tasks for all user routines (legacy)
         const userRoutines = await getUserRoutines(clerkUserId);
         const allTasks = [];
         

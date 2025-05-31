@@ -86,20 +86,40 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      // Update timeline with stage advancement
-      const currentTimeline = (currentRoutine.timeline as RoutineTimeline) || [];
-      const updatedTimeline = addTimelineEvent(currentTimeline, {
-        type: "stage_advanced",
-        stageNumber: body.currentStage,
-      });
+      // Check if this is the final stage
+      if (body.currentStage === currentRoutine.stages) {
+        // User is advancing to the final stage, mark as finished
+        const currentTimeline = (currentRoutine.timeline as RoutineTimeline) || [];
+        const updatedTimeline = addTimelineEvent(currentTimeline, {
+          type: "finished",
+        });
+        
+        const routine = await updateRoutineById(clerkUserId, id, {
+          currentStage: body.currentStage,
+          currentStageProgress: 0, // Reset progress immediately
+          status: "finished",
+          endDate: new Date(), // Set completion date
+          timeline: updatedTimeline,
+        });
 
-      // Update routine with new stage but don't reset progress yet (cron will handle it)
-      const routine = await updateRoutineById(clerkUserId, id, {
-        currentStage: body.currentStage,
-        timeline: updatedTimeline,
-      });
+        return NextResponse.json(routine);
+      } else {
+        // Update timeline with stage advancement and reset progress immediately
+        const currentTimeline = (currentRoutine.timeline as RoutineTimeline) || [];
+        const updatedTimeline = addTimelineEvent(currentTimeline, {
+          type: "stage_advanced",
+          stageNumber: body.currentStage,
+        });
 
-      return NextResponse.json(routine);
+        // Update routine with new stage and reset progress immediately
+        const routine = await updateRoutineById(clerkUserId, id, {
+          currentStage: body.currentStage,
+          currentStageProgress: 0, // Reset progress immediately for better UX
+          timeline: updatedTimeline,
+        });
+
+        return NextResponse.json(routine);
+      }
     }
 
     // Handle stage advancement action (legacy flow)

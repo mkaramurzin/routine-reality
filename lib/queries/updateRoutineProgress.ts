@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { routines, users } from "@/lib/db/schema";
+import { routines, users, activeTasks, tasks, taskSets } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
 /**
@@ -7,12 +7,14 @@ import { eq, and } from "drizzle-orm";
  * @param clerkUserId - The Clerk user ID
  * @param routineId - The routine ID to update
  * @param progressChange - The change in progress (+1 for completion, -1 for undo)
+ * @param activeTaskId - The active task ID to validate stage matching
  * @returns The updated routine or null if not found
  */
 export async function updateRoutineProgress(
   clerkUserId: string,
   routineId: string,
-  progressChange: number
+  progressChange: number,
+  activeTaskId?: string
 ) {
   // Get the user
   const user = await db.query.users.findFirst({
@@ -36,6 +38,35 @@ export async function updateRoutineProgress(
   });
 
   if (!routine || routine.status !== "active") return null;
+
+  // If we have an activeTaskId, validate that the task belongs to the current stage
+  if (activeTaskId) {
+    const activeTask = await db.query.activeTasks.findFirst({
+      where: eq(activeTasks.id, activeTaskId),
+      columns: { originalTaskId: true },
+    });
+
+    if (activeTask?.originalTaskId) {
+      // Get the original task and its taskSet to check the stage
+      const originalTask = await db.query.tasks.findFirst({
+        where: eq(tasks.id, activeTask.originalTaskId),
+        columns: { taskSetId: true },
+      });
+
+      if (originalTask) {
+        const taskSet = await db.query.taskSets.findFirst({
+          where: eq(taskSets.id, originalTask.taskSetId),
+          columns: { stageNumber: true },
+        });
+
+        // Only update progress if the task belongs to the current stage
+        if (!taskSet || taskSet.stageNumber !== routine.currentStage) {
+          console.log(`Task from stage ${taskSet?.stageNumber} does not match current routine stage ${routine.currentStage}, skipping progress update`);
+          return routine; // Return routine without updating progress
+        }
+      }
+    }
+  }
 
   // Calculate new progress, ensuring it doesn't go below 0
   const newProgress = Math.max(0, routine.currentStageProgress + progressChange);

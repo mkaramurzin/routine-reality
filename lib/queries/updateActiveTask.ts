@@ -64,7 +64,7 @@ export async function updateActiveTaskById(
     
     // Update routine progress if there's a change
     if (progressChange !== 0) {
-      await updateRoutineProgress(clerkUserId, currentTask.routineId, progressChange);
+      await updateRoutineProgress(clerkUserId, currentTask.routineId, progressChange, taskId);
     }
   }
 

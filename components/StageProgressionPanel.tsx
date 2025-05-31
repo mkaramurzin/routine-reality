@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Progress } from "@heroui/progress";
-import { Trophy, ArrowRight, CheckCircle } from "lucide-react";
+import { Trophy, ArrowRight, CheckCircle, Lock } from "lucide-react";
 import { Spinner } from "@heroui/spinner";
 import {
   Modal,
@@ -47,6 +47,10 @@ const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showNextStageMessage, setShowNextStageMessage] = useState(false);
+  const [immutabilityInfo, setImmutabilityInfo] = useState<{
+    tasksWillBecomeImmutable: number;
+    stagesAffected: number[];
+  } | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Fetch progress data
@@ -80,6 +84,17 @@ const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
   const handleAdvancement = async () => {
     if (!progress?.canAdvance || isAdvancing || progress.status === "finished") return;
     
+    // Fetch immutability info before showing modal
+    try {
+      const response = await fetch(`/api/routines/${routineId}/immutability-info?newStage=${progress.currentStage + 1}`);
+      if (response.ok) {
+        const info = await response.json();
+        setImmutabilityInfo(info);
+      }
+    } catch (error) {
+      console.error("Error fetching immutability info:", error);
+    }
+    
     // Open confirmation modal
     onOpen();
   };
@@ -104,19 +119,19 @@ const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
         throw new Error('Failed to advance stage');
       }
       
-      // Refresh progress data after advancement
-      await fetchProgress();
-      
-      // Show success feedback
+      // Show success feedback immediately (before refreshing data)
       setShowSuccess(true);
       setShowNextStageMessage(true);
       
       // Show toast notification
       addToast({
         title: "Stage Progression Confirmed!",
-        description: "New tasks arrive tomorrow!",
+        description: "Your progress has been reset for the new stage!",
         color: "success",
       });
+      
+      // Refresh progress data after advancement
+      await fetchProgress();
       
       setTimeout(() => {
         setShowSuccess(false);
@@ -129,6 +144,9 @@ const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
         description: "Failed to advance stage. Please try again.",
         color: "danger",
       });
+      // Reset UI state on error
+      setShowSuccess(false);
+      setShowNextStageMessage(false);
     } finally {
       setIsAdvancing(false);
     }
@@ -205,7 +223,7 @@ const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
                 </p>
                 <p className="text-default-600 mt-1">
                   {showNextStageMessage
-                    ? "New Stage Begins Tomorrow ✅"
+                    ? "Stage Advanced Successfully! ✅"
                     : progress.canAdvance 
                     ? "You've unlocked the next stage!" 
                     : `Complete ${progress.tasksNeededToAdvance} more task${progress.tasksNeededToAdvance !== 1 ? 's' : ''} to advance`
@@ -246,7 +264,7 @@ const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
                   disabled={!progress.canAdvance || showNextStageMessage}
                 >
                   {showNextStageMessage
-                    ? "New Stage Tomorrow ✅"
+                    ? "Stage Advanced! ✅"
                     : isAdvancing
                     ? "Advancing..."
                     : progress.isOnFinalStage
@@ -261,20 +279,57 @@ const StageProgressionPanel: React.FC<StageProgressionPanelProps> = ({
       </Card>
 
       {/* Confirmation Modal */}
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal isOpen={isOpen} onClose={onClose} size="lg">
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1">
-            Advance to Next Stage?
+            <div className="flex items-center gap-2">
+              <ArrowRight className="h-5 w-5" />
+              Advance to Next Stage?
+            </div>
           </ModalHeader>
           <ModalBody>
-            <p>
-              Are you sure you want to advance to the next stage? Your new tasks will begin tomorrow.
-            </p>
-            {progress?.isOnFinalStage && (
-              <p className="mt-2 text-warning-600">
-                This is your final stage. Advancing will complete the routine!
+            <div className="space-y-4">
+              <p>
+                Are you sure you want to advance to stage {progress?.currentStage ? progress.currentStage + 1 : '?'}? 
+                Your progress will be reset and you'll begin working on the new stage tasks.
               </p>
-            )}
+              
+              {immutabilityInfo && immutabilityInfo.tasksWillBecomeImmutable > 0 && (
+                <div className="p-4 bg-warning-50 border border-warning-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Lock className="h-5 w-5 text-warning-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-warning-800 mb-2">
+                        Tasks Will Become Immutable
+                      </h4>
+                      <p className="text-warning-700 text-sm mb-2">
+                        <strong>{immutabilityInfo.tasksWillBecomeImmutable} task{immutabilityInfo.tasksWillBecomeImmutable !== 1 ? 's' : ''}</strong> from 
+                        previous stage{immutabilityInfo.stagesAffected.length !== 1 ? 's' : ''} will become <strong>permanently locked</strong> and can no longer be modified.
+                      </p>
+                      <p className="text-warning-700 text-sm">
+                        Affected stage{immutabilityInfo.stagesAffected.length !== 1 ? 's' : ''}: {immutabilityInfo.stagesAffected.join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {progress?.isOnFinalStage && (
+                <div className="p-4 bg-success-50 border border-success-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Trophy className="h-5 w-5 text-success-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-success-800 mb-1">
+                        Final Stage
+                      </h4>
+                      <p className="text-success-700 text-sm">
+                        This is your final stage. Advancing will complete the routine!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </ModalBody>
           <ModalFooter>
             <Button color="danger" variant="light" onPress={onClose}>

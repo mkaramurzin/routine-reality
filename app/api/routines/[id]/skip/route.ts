@@ -5,14 +5,18 @@ import { db } from "@/lib/db";
 import { users, activeTasks, taskHistory } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { userId: clerkUserId } = await auth();
 
   if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const routineId = params.id;
+  const resolvedParams = await params;
+  const routineId = resolvedParams.id;
 
   try {
     // Get the user to access their timezone

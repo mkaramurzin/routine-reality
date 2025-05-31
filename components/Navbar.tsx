@@ -3,7 +3,7 @@
 import { useClerk, SignedIn, SignedOut } from "@clerk/nextjs";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { CloudUpload, ChevronDown, User, Menu, X } from "lucide-react";
+import { CloudUpload, ChevronDown, User, Menu, X, Sun, Moon } from "lucide-react";
 import {
   Dropdown,
   DropdownTrigger,
@@ -13,6 +13,7 @@ import {
 import { Avatar } from "@heroui/avatar";
 import { Button } from "@heroui/button";
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
 
 interface SerializedUser {
   id: string;
@@ -31,6 +32,7 @@ export default function Navbar({ user }: NavbarProps) {
   const { signOut } = useClerk();
   const router = useRouter();
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
@@ -127,6 +129,10 @@ export default function Navbar({ user }: NavbarProps) {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
   return (
     <header
       className={`bg-default-50 border-b border-default-200 sticky top-0 z-50 transition-shadow ${isScrolled ? "shadow-sm" : ""}`}
@@ -140,6 +146,21 @@ export default function Navbar({ user }: NavbarProps) {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex gap-4 items-center">
+            {/* Theme Toggle Button */}
+            <Button
+              isIconOnly
+              variant="flat"
+              size="sm"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
+
             {/* Show these buttons when user is signed out */}
             <SignedOut>
               <Link href="/sign-in">
@@ -300,6 +321,19 @@ export default function Navbar({ user }: NavbarProps) {
 
                 {/* Navigation links */}
                 <div className="flex flex-col gap-4">
+                  {/* Theme Toggle for Mobile */}
+                  <button
+                    className="py-2 px-3 hover:bg-default-100 rounded-md transition-colors flex items-center gap-3"
+                    onClick={toggleTheme}
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                    {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                  </button>
+
                   {!isOnDashboard && (
                     <Link
                       href="/dashboard"

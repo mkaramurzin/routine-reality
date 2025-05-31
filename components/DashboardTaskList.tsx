@@ -13,6 +13,7 @@ interface Task {
   stageNumber?: number;
   isImmutable?: boolean;
   routineTitle?: string;
+  routineId?: string;
 }
 
 interface DashboardTaskListProps {
@@ -27,6 +28,20 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hiddenRoutines, setHiddenRoutines] = useState<Set<string>>(new Set());
+
+  // Load hidden routines from localStorage
+  useEffect(() => {
+    const savedHidden = localStorage.getItem('hiddenRoutines');
+    if (savedHidden) {
+      try {
+        const hiddenIds = JSON.parse(savedHidden);
+        setHiddenRoutines(new Set(hiddenIds));
+      } catch (err) {
+        console.error('Error loading hidden routines:', err);
+      }
+    }
+  }, []);
 
   // Fetch active tasks function
   const fetchTasks = async () => {
@@ -177,6 +192,16 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
     }
   };
 
+  // Filter tasks to exclude those from hidden routines
+  const visibleTasks = tasks.filter(task => {
+    // If the task has a routineId, check if it's hidden
+    if (task.routineId) {
+      return !hiddenRoutines.has(task.routineId);
+    }
+    // If no routineId, show the task (for backwards compatibility)
+    return true;
+  });
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -193,17 +218,22 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
     );
   }
 
-  if (tasks.length === 0) {
+  if (visibleTasks.length === 0) {
     return (
       <div className="text-center py-8 text-default-500">
         <p>You don't have any active tasks for today.</p>
+        {tasks.length > 0 && hiddenRoutines.size > 0 && (
+          <p className="text-sm mt-2 text-default-400">
+            {tasks.length} tasks are hidden from routine settings.
+          </p>
+        )}
       </div>
     );
   }
 
   // Separate immutable and mutable tasks for better UX
-  const mutableTasks = tasks.filter(task => !task.isImmutable);
-  const immutableTasks = tasks.filter(task => task.isImmutable);
+  const mutableTasks = visibleTasks.filter(task => !task.isImmutable);
+  const immutableTasks = visibleTasks.filter(task => task.isImmutable);
 
   return (
     <div className="space-y-4">

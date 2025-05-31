@@ -200,6 +200,7 @@ export async function PATCH(request: NextRequest) {
       "stages",
       "thresholds",
       "currentStage",
+      "currentStageProgress",
       "status",
     ];
 
@@ -214,6 +215,15 @@ export async function PATCH(request: NextRequest) {
       updateData.endDate = new Date(updateData.endDate as string);
     }
 
+    // Handle routine reset (when currentStage is set to 1 and currentStageProgress to 0)
+    if (updateData.currentStage === 1 && updateData.currentStageProgress === 0 && currentRoutine.currentStage > 1) {
+      const currentTimeline = (currentRoutine.timeline as RoutineTimeline) || [];
+      const updatedTimeline = addTimelineEvent(currentTimeline, {
+        type: "reset",
+      });
+      updateData.timeline = updatedTimeline;
+    }
+
     // If status is being changed, update timeline
     if (updateData.status && updateData.status !== currentRoutine.status) {
       const currentTimeline = (currentRoutine.timeline as RoutineTimeline) || [];
@@ -226,10 +236,15 @@ export async function PATCH(request: NextRequest) {
         case "active":
           if (currentRoutine.status === "paused") {
             timelineEvent = { type: "resumed" };
+          } else if (currentRoutine.status === "abandoned") {
+            timelineEvent = { type: "resumed" };
           }
           break;
         case "finished":
           timelineEvent = { type: "finished" };
+          break;
+        case "abandoned":
+          timelineEvent = { type: "abandoned" };
           break;
       }
 

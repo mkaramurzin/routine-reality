@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Button } from "@heroui/button";
@@ -8,7 +8,8 @@ import { Spinner } from "@heroui/spinner";
 import { Checkbox } from "@heroui/checkbox";
 import { ArrowLeft, Calendar, Target, Info } from "lucide-react";
 import StageProgressionPanel from "@/components/StageProgressionPanel";
-import RoutineTaskList from "@/components/RoutineTaskList";
+import RoutineTaskList, { RoutineTaskListRef } from "@/components/RoutineTaskList";
+import RoutineControlsDropdown from "@/components/RoutineControlsDropdown";
 import { getRoutineById, advanceRoutineStage } from "@/lib/api/routines";
 
 interface Routine {
@@ -31,6 +32,7 @@ export default function RoutineDetailPage() {
   const params = useParams();
   const router = useRouter();
   const routineId = params.id as string;
+  const taskListRef = useRef<RoutineTaskListRef>(null);
 
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,6 +76,27 @@ export default function RoutineDetailPage() {
   // Function to trigger progress refresh when tasks are updated
   const handleTaskUpdate = () => {
     setProgressRefreshTrigger(prev => prev + 1);
+  };
+
+  // Function to refresh routine data when controls are used
+  const handleRoutineUpdated = async () => {
+    if (!routineId) return;
+    
+    try {
+      // Refresh routine data
+      const data = await getRoutineById(routineId);
+      setRoutine(data);
+      
+      // Also trigger progress refresh
+      setProgressRefreshTrigger(prev => prev + 1);
+      
+      // Refresh task list to show newly served tasks (important for reset/resume)
+      if (taskListRef.current) {
+        await taskListRef.current.refreshTasks();
+      }
+    } catch (err) {
+      console.error("Error refreshing routine:", err);
+    }
   };
 
   // Format dates for display
@@ -125,7 +148,7 @@ export default function RoutineDetailPage() {
   return (
     <div className="min-h-screen flex flex-col bg-default-50">
       <main className="flex-1 container mx-auto py-8 px-6 max-w-4xl">
-        {/* Header with Back button and Calendar View button */}
+        {/* Header with Back button, Calendar View button, and Controls dropdown */}
         <div className="mb-6 flex justify-between items-center">
           <Button
             variant="flat"
@@ -135,12 +158,19 @@ export default function RoutineDetailPage() {
             Back to Dashboard
           </Button>
           
-          <Button
-            color="primary"
-            variant="solid"
-          >
-            Calendar View
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              color="primary"
+              variant="solid"
+            >
+              Calendar View
+            </Button>
+            
+            <RoutineControlsDropdown 
+              routine={routine} 
+              onRoutineUpdated={handleRoutineUpdated}
+            />
+          </div>
         </div>
 
         <div className="grid gap-6">
@@ -153,6 +183,7 @@ export default function RoutineDetailPage() {
 
           {/* Today's Tasks Section */}
           <RoutineTaskList 
+            ref={taskListRef}
             routineId={routine.id} 
             onTaskUpdate={handleTaskUpdate}
           />

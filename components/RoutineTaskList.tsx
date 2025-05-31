@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import TaskCard from "./TaskCard";
 import { Spinner } from "@heroui/spinner";
 import { Tabs, Tab } from "@heroui/tabs";
@@ -21,7 +21,11 @@ interface RoutineTaskListProps {
   onTaskUpdate?: () => void; // Callback to notify parent of task updates
 }
 
-const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId, onTaskUpdate }) => {
+export interface RoutineTaskListRef {
+  refreshTasks: () => Promise<void>;
+}
+
+const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ routineId, onTaskUpdate }, ref) => {
   const [activeTasks, setActiveTasks] = useState<Task[]>([]);
   const [historyTasks, setHistoryTasks] = useState<Task[]>([]);
   const [unmarkedTasks, setUnmarkedTasks] = useState<Task[]>([]);
@@ -31,27 +35,33 @@ const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId, onTaskUpda
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("active");
 
+  // Fetch active tasks function
+  const fetchActiveTasks = async () => {
+    try {
+      setActiveLoading(true);
+      const response = await fetch(`/api/tasks?type=active&routineId=${routineId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Error fetching active tasks: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setActiveTasks(data);
+    } catch (err) {
+      setError((err as Error).message);
+      console.error("Error fetching active tasks:", err);
+    } finally {
+      setActiveLoading(false);
+    }
+  };
+
+  // Expose refresh function to parent components
+  useImperativeHandle(ref, () => ({
+    refreshTasks: fetchActiveTasks
+  }));
+
   // Fetch active tasks on component mount
   useEffect(() => {
-    const fetchActiveTasks = async () => {
-      try {
-        setActiveLoading(true);
-        const response = await fetch(`/api/tasks?type=active&routineId=${routineId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Error fetching active tasks: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        setActiveTasks(data);
-      } catch (err) {
-        setError((err as Error).message);
-        console.error("Error fetching active tasks:", err);
-      } finally {
-        setActiveLoading(false);
-      }
-    };
-
     if (routineId) {
       fetchActiveTasks();
     }
@@ -306,6 +316,6 @@ const RoutineTaskList: React.FC<RoutineTaskListProps> = ({ routineId, onTaskUpda
       </Tabs>
     </div>
   );
-};
+});
 
 export default RoutineTaskList; 

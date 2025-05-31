@@ -5,7 +5,8 @@ import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
 import { Progress } from "@heroui/progress";
-import { ArrowRight, Trophy, Calendar, Target } from "lucide-react";
+import { Checkbox } from "@heroui/checkbox";
+import { ArrowRight, Trophy, Calendar, Target, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getUserRoutines, skipRoutineForDay } from "@/lib/api/routines";
 import RoutineActionsModal from "./RoutineActionsModal";
@@ -43,12 +44,32 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hiddenRoutines, setHiddenRoutines] = useState<Set<string>>(new Set());
+  const [showHiddenRoutines, setShowHiddenRoutines] = useState(false);
   
   // Modal states
   const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
   const [isActionsModalOpen, setIsActionsModalOpen] = useState(false);
   const [isSkipModalOpen, setIsSkipModalOpen] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
+
+  // Load hidden routines from localStorage
+  useEffect(() => {
+    const savedHidden = localStorage.getItem('hiddenRoutines');
+    if (savedHidden) {
+      try {
+        const hiddenIds = JSON.parse(savedHidden);
+        setHiddenRoutines(new Set(hiddenIds));
+      } catch (err) {
+        console.error('Error loading hidden routines:', err);
+      }
+    }
+  }, []);
+
+  // Save hidden routines to localStorage
+  const saveHiddenRoutines = (hiddenSet: Set<string>) => {
+    localStorage.setItem('hiddenRoutines', JSON.stringify(Array.from(hiddenSet)));
+  };
 
   const fetchRoutines = async () => {
     try {
@@ -99,11 +120,15 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
   };
 
   const handleRoutineClick = (routine: Routine) => {
-    // Don't allow interaction if routine has no tasks today
-    if (!routine.hasTasksToday) return;
+    // Allow interaction with paused and abandoned routines for management actions
+    if (routine.status === "paused" || routine.status === "abandoned" || routine.hasTasksToday) {
+      setSelectedRoutine(routine);
+      setIsActionsModalOpen(true);
+      return;
+    }
     
-    setSelectedRoutine(routine);
-    setIsActionsModalOpen(true);
+    // Don't allow interaction if routine has no tasks today and is not paused/abandoned
+    if (!routine.hasTasksToday) return;
   };
 
   const handleViewDetails = () => {
@@ -116,6 +141,96 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
   const handleSkipToday = () => {
     setIsActionsModalOpen(false);
     setIsSkipModalOpen(true);
+  };
+
+  const handleResume = async () => {
+    if (!selectedRoutine) return;
+    
+    try {
+      const response = await fetch(`/api/routines/${selectedRoutine.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "active",
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to resume routine");
+      }
+
+      // Trigger task serving for today
+      try {
+        await fetch(`/api/routines/${selectedRoutine.id}/serve-tasks`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      } catch (taskError) {
+        console.warn("Failed to serve tasks after resume:", taskError);
+      }
+
+      addToast({
+        title: "Routine Resumed",
+        description: "Today's tasks have been served. Navigating to routine page.",
+        color: "success",
+      });
+
+      setIsActionsModalOpen(false);
+      setSelectedRoutine(null);
+      
+      // Navigate to routine page and refresh
+      router.push(`/routines/${selectedRoutine.id}`);
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: (error as Error).message || "Failed to resume routine",
+        color: "danger",
+      });
+    }
+  };
+
+  const handleAbandon = async () => {
+    if (!selectedRoutine) return;
+    
+    try {
+      const response = await fetch(`/api/routines/${selectedRoutine.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "abandoned",
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to abandon routine");
+      }
+
+      addToast({
+        title: "Routine Abandoned",
+        description: "You can resume or restart at any time.",
+        color: "success",
+      });
+
+      setIsActionsModalOpen(false);
+      setSelectedRoutine(null);
+      
+      // Refresh the routines list
+      await fetchRoutines();
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: (error as Error).message || "Failed to abandon routine",
+        color: "danger",
+      });
+    }
   };
 
   const handleSkipConfirm = async () => {
@@ -149,6 +264,80 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
     }
   };
 
+  const handleReset = async () => {
+    if (!selectedRoutine) return;
+    
+    try {
+      const response = await fetch(`/api/routines/${selectedRoutine.id}/reset`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to reset routine");
+      }
+
+      const result = await response.json();
+
+      addToast({
+        title: "Routine Reset",
+        description: `Routine reset to Stage 1. ${result.tasksCreated} new tasks created.`,
+        color: "success",
+      });
+
+      setIsActionsModalOpen(false);
+      setSelectedRoutine(null);
+      
+      // Refresh the routines list
+      await fetchRoutines();
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: (error as Error).message || "Failed to reset routine",
+        color: "danger",
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRoutine) return;
+    
+    try {
+      const response = await fetch(`/api/routines/${selectedRoutine.id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete routine");
+      }
+
+      addToast({
+        title: "Routine Deleted",
+        description: `"${selectedRoutine.title}" has been permanently deleted.`,
+        color: "success",
+      });
+
+      setIsActionsModalOpen(false);
+      setSelectedRoutine(null);
+      
+      // Refresh the routines list
+      await fetchRoutines();
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: (error as Error).message || "Failed to delete routine",
+        color: "danger",
+      });
+    }
+  };
+
   const closeModals = () => {
     setIsActionsModalOpen(false);
     setIsSkipModalOpen(false);
@@ -156,8 +345,28 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
   };
 
   const isRoutineDisabled = (routine: Routine) => {
+    // Paused and abandoned routines are clickable for management actions
+    if (routine.status === "paused" || routine.status === "abandoned") return false;
+    // Active routines with no tasks today are disabled
     return routine.status === "active" && !routine.hasTasksToday;
   };
+
+  const handleToggleHidden = (routineId: string, isHidden: boolean) => {
+    const newHiddenRoutines = new Set(hiddenRoutines);
+    
+    if (isHidden) {
+      newHiddenRoutines.add(routineId);
+    } else {
+      newHiddenRoutines.delete(routineId);
+    }
+    
+    setHiddenRoutines(newHiddenRoutines);
+    saveHiddenRoutines(newHiddenRoutines);
+  };
+
+  // Filter routines to exclude hidden ones
+  const visibleRoutines = routines.filter(routine => !hiddenRoutines.has(routine.id));
+  const hiddenRoutinesList = routines.filter(routine => hiddenRoutines.has(routine.id));
 
   if (loading) {
     return (
@@ -206,14 +415,22 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
     <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-default-900">Your Routines</h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold text-default-900">Your Routines</h2>
+            {hiddenRoutines.size > 0 && (
+              <div className="flex items-center gap-2 text-sm text-default-500">
+                <EyeOff className="h-4 w-4" />
+                <span>{hiddenRoutines.size} hidden</span>
+              </div>
+            )}
+          </div>
           <Button color="primary" variant="flat" size="sm" onPress={() => router.push('/routines/select')}>
             Add Routine
           </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {routines.map((routine) => (
+          {visibleRoutines.map((routine) => (
             <Card
               key={routine.id}
               className={`shadow-md transition-shadow ${
@@ -228,6 +445,14 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
                 <div className="flex items-center gap-2">
                   {routine.status === "finished" ? (
                     <Trophy className="h-5 w-5 text-amber-500" />
+                  ) : routine.status === "paused" ? (
+                    <div className="w-5 h-5 rounded-full border-2 border-warning-400 bg-warning-100 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-warning-500"></div>
+                    </div>
+                  ) : routine.status === "abandoned" ? (
+                    <div className="w-5 h-5 rounded-full border-2 border-danger-400 bg-danger-100 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-danger-500"></div>
+                    </div>
                   ) : (
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                       isRoutineDisabled(routine)
@@ -244,18 +469,37 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
                   <h3 className={`font-semibold truncate ${
                     isRoutineDisabled(routine)
                       ? 'text-gray-500'
+                      : routine.status === "paused"
+                      ? 'text-warning-700'
+                      : routine.status === "abandoned"
+                      ? 'text-danger-700'
                       : 'text-default-900'
                   }`}>
                     {routine.title}
                   </h3>
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end gap-2">
                   <p className={`text-xs font-medium ${getStatusColor(routine.status)}`}>
                     {routine.status.charAt(0).toUpperCase() + routine.status.slice(1)}
                   </p>
-                  {isRoutineDisabled(routine) && (
-                    <p className="text-xs text-gray-400 mt-1">No tasks today</p>
+                  {isRoutineDisabled(routine) && routine.status === "active" && (
+                    <p className="text-xs text-gray-400">No tasks today</p>
                   )}
+                  {routine.status === "paused" && (
+                    <p className="text-xs text-warning-600">Click to resume</p>
+                  )}
+                  {routine.status === "abandoned" && (
+                    <p className="text-xs text-danger-600">Click to manage</p>
+                  )}
+                  <Checkbox
+                    size="sm"
+                    isSelected={hiddenRoutines.has(routine.id)}
+                    onValueChange={(isSelected) => handleToggleHidden(routine.id, isSelected)}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Hide routine"
+                  >
+                    <span className="text-xs text-default-500">Hide</span>
+                  </Checkbox>
                 </div>
               </CardHeader>
 
@@ -303,6 +547,86 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
             </Card>
           ))}
         </div>
+
+        {/* Hidden Routines Section */}
+        {hiddenRoutinesList.length > 0 && (
+          <div className="mt-8">
+            <Button
+              variant="flat"
+              size="sm"
+              startContent={<EyeOff className="h-4 w-4" />}
+              onPress={() => setShowHiddenRoutines(!showHiddenRoutines)}
+              className="mb-4"
+            >
+              {showHiddenRoutines ? 'Hide' : 'Show'} Hidden Routines ({hiddenRoutinesList.length})
+            </Button>
+
+            {showHiddenRoutines && (
+              <div className="space-y-4">
+                <div className="text-sm text-default-500 mb-4">
+                  These routines are hidden from your main dashboard. Click "Unhide" to restore them.
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {hiddenRoutinesList.map((routine) => (
+                    <Card
+                      key={routine.id}
+                      className="shadow-sm opacity-75 border-dashed"
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <div className="flex items-center gap-2">
+                          {routine.status === "finished" ? (
+                            <Trophy className="h-4 w-4 text-amber-500" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border-2 border-default-300 flex items-center justify-center">
+                              <div className="w-1.5 h-1.5 rounded-full bg-default-400"></div>
+                            </div>
+                          )}
+                          <h3 className="font-medium truncate text-default-700 text-sm">
+                            {routine.title}
+                          </h3>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          color="primary"
+                          onPress={() => handleToggleHidden(routine.id, false)}
+                        >
+                          Unhide
+                        </Button>
+                      </CardHeader>
+                      <CardBody className="pt-1">
+                        <p className="text-xs text-default-500 line-clamp-2 mb-2">
+                          {routine.routineInfo}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className={`text-xs font-medium ${getStatusColor(routine.status)}`}>
+                            {routine.status.charAt(0).toUpperCase() + routine.status.slice(1)}
+                          </p>
+                          <p className="text-xs text-default-400">
+                            Stage {routine.currentStage}/{routine.stages}
+                          </p>
+                        </div>
+                      </CardBody>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Show message when all routines are hidden */}
+        {routines.length > 0 && visibleRoutines.length === 0 && (
+          <div className="text-center py-12">
+            <EyeOff className="h-12 w-12 text-default-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-default-900 mb-2">
+              All routines are hidden
+            </h3>
+            <p className="text-default-600 mb-6">
+              Use the "Show Hidden Routines" section below to restore visibility.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Modals */}
@@ -312,6 +636,10 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
         routine={selectedRoutine}
         onViewDetails={handleViewDetails}
         onSkipToday={handleSkipToday}
+        onResume={handleResume}
+        onAbandon={handleAbandon}
+        onReset={handleReset}
+        onDelete={handleDelete}
       />
 
       <SkipConfirmationModal

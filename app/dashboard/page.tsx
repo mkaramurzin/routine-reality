@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import DashboardClient from "@/components/DashboardClient";
+import Footer from "@/components/Footer";
 
 export default async function Dashboard() {
   const { userId } = await auth();
@@ -42,18 +43,7 @@ export default async function Dashboard() {
         <DashboardClient userId={userId} />
       </main>
 
-      <footer className="bg-default-50 border-t border-default-200 py-6">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <h2 className="text-lg font-bold">Routine Reality</h2>
-            </div>
-            <p className="text-default-500 text-sm">
-              &copy; {new Date().getFullYear()} Routine Reality
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

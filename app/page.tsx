@@ -156,20 +156,6 @@ export default function Home() {
           </div>
         </section> */}
       </main>
-
-      {/* Simple footer */}
-      <footer className="bg-default-50 border-t border-default-200 py-4 md:py-6">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <h2 className="text-lg font-bold">Routine Reality</h2>
-            </div>
-            <p className="text-default-500 text-sm">
-              &copy; {new Date().getFullYear()} Routine Reality
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

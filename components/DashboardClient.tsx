@@ -1,12 +1,8 @@
 "use client";
 
 import React, { useRef } from "react";
-import RoutineList from "./RoutineList";
+import RoutineList, { RoutineListRef } from "./RoutineList";
 import DashboardTaskList, { DashboardTaskListRef } from "./DashboardTaskList";
-
-interface RoutineListRef {
-  refreshRoutines: () => Promise<void>;
-}
 
 interface DashboardClientProps {
   userId: string;
@@ -31,6 +27,13 @@ const DashboardClient: React.FC<DashboardClientProps> = ({ userId }) => {
     await Promise.all(refreshPromises);
   };
 
+  const handleTaskUpdate = async () => {
+    // Refresh the routine list when tasks are updated to sync stage progress
+    if (routineListRef.current) {
+      await routineListRef.current.refreshRoutines();
+    }
+  };
+
   return (
     <div className="space-y-12">
       {/* Routines Section */}
@@ -41,7 +44,7 @@ const DashboardClient: React.FC<DashboardClientProps> = ({ userId }) => {
       {/* Today's Tasks Section */}
       <section>
         <h2 className="text-2xl font-bold text-default-900 mb-6">Today's Tasks</h2>
-        <DashboardTaskList ref={taskListRef} userId={userId} />
+        <DashboardTaskList ref={taskListRef} userId={userId} onTaskUpdate={handleTaskUpdate} />
       </section>
     </div>
   );

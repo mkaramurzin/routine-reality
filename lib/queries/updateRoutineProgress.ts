@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { routines, users, activeTasks, tasks, taskSets } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 /**
  * Updates routine progress when a task status changes
@@ -24,7 +24,7 @@ export async function updateRoutineProgress(
 
   if (!user) return null;
 
-  // Get the current routine
+  // Get the current routine for validation
   const routine = await db.query.routines.findFirst({
     where: and(eq(routines.id, routineId), eq(routines.userId, user.id)),
     columns: {
@@ -68,14 +68,11 @@ export async function updateRoutineProgress(
     }
   }
 
-  // Calculate new progress, ensuring it doesn't go below 0
-  const newProgress = Math.max(0, routine.currentStageProgress + progressChange);
-
-  // Update the routine with new progress
+  // Use atomic SQL increment operation to prevent race conditions
   const [updatedRoutine] = await db
     .update(routines)
     .set({
-      currentStageProgress: newProgress,
+      currentStageProgress: sql`GREATEST(0, ${routines.currentStageProgress} + ${progressChange})`,
       updatedAt: new Date(),
     })
     .where(and(eq(routines.id, routineId), eq(routines.userId, user.id)))

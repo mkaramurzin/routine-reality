@@ -18,13 +18,14 @@ interface Task {
 
 interface DashboardTaskListProps {
   userId: string;
+  onTaskUpdate?: () => void; // Callback to notify parent of task updates
 }
 
 export interface DashboardTaskListRef {
   refreshTasks: () => Promise<void>;
 }
 
-const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProps>(({ userId }, ref) => {
+const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProps>(({ userId, onTaskUpdate }, ref) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,6 +108,11 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
       setTasks((prevTasks) =>
         prevTasks.map((task) => (task.id === taskId ? { ...task, ...updatedTask } : task))
       );
+
+      // Notify parent of task update
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
     } catch (err) {
       console.error("Error completing task:", err);
       setError((err as Error).message);
@@ -146,6 +152,11 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
       setTasks((prevTasks) =>
         prevTasks.map((task) => (task.id === taskId ? { ...task, ...updatedTask } : task))
       );
+
+      // Notify parent of task update
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
     } catch (err) {
       console.error("Error marking task as missed:", err);
       setError((err as Error).message);
@@ -186,6 +197,11 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
       setTasks((prevTasks) =>
         prevTasks.map((task) => (task.id === taskId ? { ...task, ...updatedTask } : task))
       );
+
+      // Notify parent of task update
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
     } catch (err) {
       console.error("Error resetting task:", err);
       setError((err as Error).message);

@@ -1,9 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveTasksForToday } from "@/lib/queries/getActiveTasks";
+import { getActiveTasksWithStageInfo } from "@/lib/queries/getActiveTasksWithStageInfo";
 import { getUnmarkedTasks } from "@/lib/queries/getUnmarkedTasks";
 import { getTaskHistory } from "@/lib/queries/getTaskHistory";
 import { createActiveTask } from "@/lib/queries/createActiveTask";
+import { getUserRoutines } from "@/lib/queries/getUserRoutines";
 
 export async function GET(request: NextRequest) {
   const { userId: clerkUserId } = await auth();
@@ -12,19 +14,49 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const type = url.searchParams.get("type");
   const routineId = url.searchParams.get("routineId");
+  const includeStageInfo = url.searchParams.get("includeStageInfo") === "true";
 
-  if (!type || !routineId) {
-    return NextResponse.json({ error: "Missing query parameters." }, { status: 400 });
+  if (!type) {
+    return NextResponse.json({ error: "Missing type parameter." }, { status: 400 });
   }
 
   try {
     if (type === "active") {
-      const tasks = await getActiveTasksForToday(clerkUserId, routineId, new Date());
-      return NextResponse.json(tasks);
+      if (includeStageInfo) {
+        // Use enhanced query that includes stage info and immutability status
+        const tasks = await getActiveTasksWithStageInfo(clerkUserId, routineId || undefined);
+        return NextResponse.json(tasks);
+      } else if (routineId) {
+        // Get tasks for specific routine (legacy)
+        const tasks = await getActiveTasksForToday(clerkUserId, routineId);
+        return NextResponse.json(tasks);
+      } else {
+        // Get tasks for all user routines (legacy)
+        const userRoutines = await getUserRoutines(clerkUserId);
+        const allTasks = [];
+        
+        for (const routine of userRoutines) {
+          try {
+            const tasks = await getActiveTasksForToday(clerkUserId, routine.id);
+            allTasks.push(...tasks);
+          } catch (error) {
+            // Log error but continue with other routines
+            console.error(`Error fetching tasks for routine ${routine.id}:`, error);
+          }
+        }
+        
+        return NextResponse.json(allTasks);
+      }
     } else if (type === "unmarked") {
+      if (!routineId) {
+        return NextResponse.json({ error: "routineId required for unmarked tasks." }, { status: 400 });
+      }
       const tasks = await getUnmarkedTasks(clerkUserId, routineId);
       return NextResponse.json(tasks);
     } else if (type === "history") {
+      if (!routineId) {
+        return NextResponse.json({ error: "routineId required for task history." }, { status: 400 });
+      }
       const tasks = await getTaskHistory(clerkUserId, routineId);
       return NextResponse.json(tasks);
     } else {

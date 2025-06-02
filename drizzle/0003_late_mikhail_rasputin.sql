@@ -1,0 +1,1 @@
+ALTER TABLE "routines" ADD COLUMN "paused_stage_progress" integer DEFAULT 0;

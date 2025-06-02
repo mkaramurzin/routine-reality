@@ -1,0 +1,1 @@
+ALTER TABLE "routines" ADD COLUMN "timeline" jsonb DEFAULT '[]'::jsonb NOT NULL;

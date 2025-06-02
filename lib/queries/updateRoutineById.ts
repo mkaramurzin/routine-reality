@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { routines, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { RoutineTimeline } from "@/lib/routines/timeline";
 
 interface UpdateRoutineData {
   title?: string;
@@ -13,6 +14,7 @@ interface UpdateRoutineData {
   currentStage?: number;
   currentStageProgress?: number;
   status?: "active" | "paused" | "finished" | "abandoned";
+  timeline?: RoutineTimeline;
 }
 
 export async function updateRoutineById(

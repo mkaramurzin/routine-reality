@@ -15,6 +15,20 @@
       "when": 1748015570850,
       "tag": "0001_conscious_phil_sheldon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1748606576544,
+      "tag": "0002_sweet_thena",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1748694121633,
+      "tag": "0003_late_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }

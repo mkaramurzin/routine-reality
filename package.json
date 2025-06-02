@@ -29,6 +29,7 @@
     "@heroui/modal": "^2.2.13",
     "@heroui/navbar": "2.2.14",
     "@heroui/progress": "^2.2.12",
+    "@heroui/select": "^2.4.20",
     "@heroui/snippet": "2.2.17",
     "@heroui/spinner": "^2.2.13",
     "@heroui/switch": "2.2.14",

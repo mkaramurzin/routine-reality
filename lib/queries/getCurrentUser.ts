@@ -8,7 +8,12 @@ export async function getCurrentUser(clerkUserId: string) {
     columns: {
       id: true,
       clerkUserId: true,
+      fullName: true,
       timezone: true,
+      language: true,
+      profilePictureUrl: true,
+      productivityGoal: true,
+      onboarded: true,
       createdAt: true,
       updatedAt: true,
     },

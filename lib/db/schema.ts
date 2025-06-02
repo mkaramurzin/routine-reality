@@ -5,6 +5,7 @@ import {
     uuid,
     integer,
     boolean,
+    jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -14,14 +15,20 @@ import { relations } from "drizzle-orm";
  * This table stores all application users.
  * - Each user is uniquely identified by a Clerk user ID
  * - Timezone is stored for scheduling daily tasks and cron jobs
+ * - Additional onboarding data is captured for personalization
  */
 export const users = pgTable("users", {
     id: uuid("id").defaultRandom().primaryKey(),
     clerkUserId: text("clerk_user_id").notNull().unique(),
+    fullName: text("full_name"),
     timezone: text("timezone").notNull(),
+    language: text("language").default("English"),
+    profilePictureUrl: text("profile_picture_url"),
+    productivityGoal: text("productivity_goal"),
+    onboarded: boolean("onboarded").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+  });
 
 /**
  * Routines Table
@@ -43,6 +50,7 @@ export const routines = pgTable("routines", {
     currentStage: integer("current_stage").notNull(),
     currentStageProgress: integer("current_stage_progress").notNull(),
     status: text("status", { enum: ["active", "paused", "finished", "abandoned"] }).default("active"),
+    timeline: jsonb("timeline").default([]).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -129,7 +137,7 @@ export const taskHistory = pgTable("task_history", {
     title: text("title").notNull(),
     description: text("description"),
     isOptional: boolean("is_optional").default(false),
-    status: text("status", { enum: ["completed", "missed"] }).notNull(),
+    status: text("status", { enum: ["completed", "missed", "skipped"] }).notNull(),
     scheduledFor: timestamp("scheduled_for").notNull(),
     completedAt: timestamp("completed_at"),
     missedAt: timestamp("missed_at"),

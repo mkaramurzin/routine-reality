@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { routines, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { createInitialTimeline } from "@/lib/routines/timeline";
 
 interface NewRoutine {
   title: string;
@@ -39,6 +40,7 @@ export async function createRoutine(
       currentStage: 1, // Initial stage
       currentStageProgress: 0, // Initial progress
       status: "active",
+      timeline: createInitialTimeline(),
     })
     .returning();
 

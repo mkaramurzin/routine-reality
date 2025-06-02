@@ -8,9 +8,17 @@ export async function POST(request: NextRequest) {
   if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
   try {
+    const body = await request.json();
+    const { fullName, timezone = "UTC", language = "English", profilePictureUrl, productivityGoal } = body;
+
     await db.insert(users).values({
       clerkUserId: userId,
-      timezone: "UTC", // default until user sets it
+      fullName,
+      timezone,
+      language,
+      profilePictureUrl,
+      productivityGoal,
+      onboarded: !!fullName, // Mark as onboarded if basic info provided
     });
 
     return NextResponse.json({ created: true });

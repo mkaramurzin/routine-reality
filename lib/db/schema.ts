@@ -15,14 +15,20 @@ import { relations } from "drizzle-orm";
  * This table stores all application users.
  * - Each user is uniquely identified by a Clerk user ID
  * - Timezone is stored for scheduling daily tasks and cron jobs
+ * - Additional onboarding data is captured for personalization
  */
 export const users = pgTable("users", {
     id: uuid("id").defaultRandom().primaryKey(),
     clerkUserId: text("clerk_user_id").notNull().unique(),
+    fullName: text("full_name"),
     timezone: text("timezone").notNull(),
+    language: text("language").default("English"),
+    profilePictureUrl: text("profile_picture_url"),
+    productivityGoal: text("productivity_goal"),
+    onboarded: boolean("onboarded").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+  });
 
 /**
  * Routines Table

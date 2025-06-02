@@ -12,6 +12,7 @@ import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Divider } from "@heroui/divider";
 import { User, Globe, MessageCircle, Camera, Target, AlertCircle } from "lucide-react";
 import { onboardingSchema, type OnboardingFormData, PRODUCTIVITY_GOALS } from "@/schemas/onboardingSchema";
+import { TimezoneSelect } from "@/components/TimezoneSelect";
 
 const COMMON_LANGUAGES = [
   "English",
@@ -34,7 +35,6 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [detectedTimezone, setDetectedTimezone] = useState<string>("");
 
   const {
     register,
@@ -69,16 +69,6 @@ export default function OnboardingPage() {
       // Set profile picture from Clerk
       if (user.imageUrl) {
         setValue("profilePictureUrl", user.imageUrl);
-      }
-
-      // Auto-detect timezone
-      try {
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        setDetectedTimezone(timezone);
-        setValue("timezone", timezone);
-      } catch (error) {
-        console.warn("Could not detect timezone:", error);
-        setValue("timezone", "UTC");
       }
     }
   }, [isLoaded, user, setValue]);
@@ -150,7 +140,7 @@ export default function OnboardingPage() {
         },
         body: JSON.stringify({
           fullName: user?.fullName || "User",
-          timezone: detectedTimezone || "UTC",
+          timezone: "UTC",
           language: "English",
         }),
       });
@@ -214,21 +204,12 @@ export default function OnboardingPage() {
             </div>
 
             {/* Timezone */}
-            <div className="space-y-2">
-              <label htmlFor="timezone" className="text-sm font-medium text-default-900">
-                Timezone <span className="text-danger">*</span>
-              </label>
-              <Input
-                id="timezone"
-                placeholder="Your timezone (auto-detected)"
-                startContent={<Globe className="h-4 w-4 text-default-500" />}
-                isInvalid={!!errors.timezone}
-                errorMessage={errors.timezone?.message}
-                {...register("timezone")}
-                className="w-full"
-                description={detectedTimezone ? `Auto-detected: ${detectedTimezone}` : undefined}
-              />
-            </div>
+            <TimezoneSelect
+              value={watch("timezone")}
+              onChange={(value) => setValue("timezone", value)}
+              isInvalid={!!errors.timezone}
+              errorMessage={errors.timezone?.message}
+            />
 
             {/* Language */}
             <div className="space-y-2">
@@ -256,7 +237,7 @@ export default function OnboardingPage() {
             </div>
 
             {/* Profile Picture URL */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label htmlFor="profilePictureUrl" className="text-sm font-medium text-default-900">
                 Profile Picture URL
               </label>
@@ -271,7 +252,7 @@ export default function OnboardingPage() {
                 className="w-full"
                 description="Optional: We'll use your account photo by default"
               />
-            </div>
+            </div> */}
 
             {/* Productivity Goal */}
             <div className="space-y-2">

@@ -37,7 +37,7 @@ export async function getRoutineProgress(clerkUserId: string, routineId: string)
   const isOnFinalStage = routine.currentStage === routine.stages;
   const currentThreshold = routine.thresholds[routine.currentStage - 1] || 0;
   const canAdvance = routine.currentStageProgress >= currentThreshold && routine.status === "active";
-  const overallProgress = ((routine.currentStage - 1) / routine.stages) * 100;
+  const overallProgress = (routine.currentStage / routine.stages) * 100;
   const stageProgress = currentThreshold > 0 ? (routine.currentStageProgress / currentThreshold) * 100 : 0;
 
   return {

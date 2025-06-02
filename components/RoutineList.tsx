@@ -171,7 +171,7 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
   };
 
   const getProgressPercentage = (routine: Routine) => {
-    return ((routine.currentStage - 1) / (routine.stages - 1)) * 100;
+    return ((routine.currentStage -1) / routine.stages) * 100;
   };
 
   const handleRoutineClick = (routine: Routine) => {

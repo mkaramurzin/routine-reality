@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
 import { CheckCircle, XCircle, RotateCcw, SkipForward, Lock } from "lucide-react";
 import { getTaskColors, WELLNESS_COLORS, type WellnessCategory } from "@/lib/wellnessColors";
@@ -46,6 +46,26 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const isMissed = task.status === "missed";
   const isSkipped = task.status === "skipped";
   
+  // State for color-coding preference
+  const [isColorCodingEnabled, setIsColorCodingEnabled] = useState(false);
+
+  // Load color-coding preference from localStorage
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('wellnessColorCoding');
+    setIsColorCodingEnabled(savedPreference === 'true');
+
+    // Listen for color-coding preference changes
+    const handleColorCodingChange = (event: CustomEvent) => {
+      setIsColorCodingEnabled(event.detail.enabled);
+    };
+
+    window.addEventListener('wellnessColorCodingChanged', handleColorCodingChange as EventListener);
+
+    return () => {
+      window.removeEventListener('wellnessColorCodingChanged', handleColorCodingChange as EventListener);
+    };
+  }, []);
+  
   // Get wellness category colors or fallback to legacy categoryColor or default
   const wellnessColors = getTaskColors(task.wellnessCategories || []);
   const cardColor = task.categoryColor || "#1E90FF"; // Fallback for backward compatibility
@@ -55,6 +75,70 @@ const TaskCard: React.FC<TaskCardProps> = ({
   
   // Calculate background color based on theme and status
   const getBgStyle = (): StyleProps => {
+    // If color coding is disabled, use neutral colors
+    if (!isColorCodingEnabled) {
+      let neutralStyles = currentTheme === "light" 
+        ? {
+            background: `linear-gradient(to right, #f1f5f915, #f1f5f908)`,
+            borderColor: `#e4e4e730`,
+            boxShadow: `0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)`,
+            borderLeft: `4px solid #e4e4e7`
+          }
+        : {
+            background: `linear-gradient(to right, #27272a15, #27272a08)`,
+            borderColor: `#3f3f4640`,
+            boxShadow: `0 4px 6px -1px rgba(0,0,0,0.2), 0 2px 4px -1px rgba(0,0,0,0.1)`,
+            borderLeft: `4px solid #3f3f46`
+          };
+
+      // Special styling for immutable tasks
+      if (isImmutable) {
+        return {
+          ...neutralStyles,
+          opacity: 0.6,
+          background: currentTheme === "light"
+            ? `linear-gradient(to right, #64748b08, #64748b03)`
+            : `linear-gradient(to right, #64748b12, #64748b06)`,
+          borderLeft: `4px solid #64748b`,
+          borderColor: currentTheme === "light" ? "#64748b30" : "#64748b40"
+        };
+      }
+            
+      // Modify styles based on status
+      if (isCompleted) {
+        return {
+          ...neutralStyles,
+          opacity: 0.85,
+          borderLeft: `4px solid #22c55e80`
+        };
+      }
+      
+      if (isMissed) {
+        return {
+          ...neutralStyles,
+          opacity: 0.7,
+          background: currentTheme === "light"
+            ? `linear-gradient(to right, #88888808, #88888803)`
+            : `linear-gradient(to right, #88888812, #88888806)`,
+          borderLeft: `4px solid #888888`
+        };
+      }
+
+      if (isSkipped) {
+        return {
+          ...neutralStyles,
+          opacity: 0.6,
+          background: currentTheme === "light"
+            ? `linear-gradient(to right, #f59e0b08, #f59e0b03)`
+            : `linear-gradient(to right, #f59e0b12, #f59e0b06)`,
+          borderLeft: `4px solid #f59e0b`
+        };
+      }
+      
+      return neutralStyles;
+    }
+
+    // Original color coding logic when enabled
     // Use wellness categories if available
     if (task.wellnessCategories && task.wellnessCategories.length > 0) {
       // For single category - subtle colored background
@@ -188,7 +272,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
       }
     }
 
-    // Fallback to legacy color system
+    // Fallback to legacy color system (when color coding enabled but no wellness categories)
     let baseStyles = currentTheme === "light" 
       ? {
           background: `linear-gradient(to right, ${cardColor}08, ${cardColor}03)`,
@@ -307,8 +391,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 isImmutable ? 'bg-slate-400' : ''
               }`} 
               style={{ 
-                backgroundColor: !isCompleted && !isMissed && !isSkipped && !isImmutable 
+                backgroundColor: !isCompleted && !isMissed && !isSkipped && !isImmutable && isColorCodingEnabled
                   ? primaryWellnessColor
+                  : !isCompleted && !isMissed && !isSkipped && !isImmutable && !isColorCodingEnabled
+                  ? (currentTheme === "light" ? "#e4e4e7" : "#3f3f46")
                   : undefined 
               }}
             ></div>
@@ -369,8 +455,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 size="sm" 
                 variant="flat"
                 style={{
-                  color: primaryWellnessColor,
-                  borderColor: primaryWellnessColor
+                  color: isColorCodingEnabled ? primaryWellnessColor : (currentTheme === "light" ? "#3f3f46" : "#d4d4d8"),
+                  borderColor: isColorCodingEnabled ? primaryWellnessColor : (currentTheme === "light" ? "#e4e4e7" : "#3f3f46")
                 }}
               >
                 Complete

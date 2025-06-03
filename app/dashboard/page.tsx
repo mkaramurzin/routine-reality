@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import DashboardClient from "@/components/DashboardClient";
 import Footer from "@/components/Footer";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export default async function Dashboard() {
   const { userId } = await auth();
@@ -11,6 +14,12 @@ export default async function Dashboard() {
   if (!userId) {
     redirect("/sign-in");
   }
+
+  // Get user's timezone from database
+  const dbUser = await db.query.users.findFirst({
+    where: eq(users.clerkUserId, userId),
+    columns: { timezone: true },
+  });
 
   // Serialize the user data to avoid passing the Clerk User object directly
   const serializedUser = user
@@ -40,7 +49,7 @@ export default async function Dashboard() {
         </div>
 
         {/* Dashboard Content */}
-        <DashboardClient userId={userId} />
+        <DashboardClient userId={userId} userTimezone={dbUser?.timezone} />
       </main>
 
       <Footer />

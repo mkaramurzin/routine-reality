@@ -6,6 +6,7 @@ import { getUnmarkedTasks } from "@/lib/queries/getUnmarkedTasks";
 import { getTaskHistory } from "@/lib/queries/getTaskHistory";
 import { createActiveTask } from "@/lib/queries/createActiveTask";
 import { getUserRoutines } from "@/lib/queries/getUserRoutines";
+import { getUpcomingTasks } from "@/lib/queries/getUpcomingTasks";
 
 export async function GET(request: NextRequest) {
   const { userId: clerkUserId } = await auth();
@@ -47,6 +48,9 @@ export async function GET(request: NextRequest) {
         
         return NextResponse.json(allTasks);
       }
+    } else if (type === "upcoming") {
+      const tasks = await getUpcomingTasks(clerkUserId);
+      return NextResponse.json(tasks);
     } else if (type === "unmarked") {
       if (!routineId) {
         return NextResponse.json({ error: "routineId required for unmarked tasks." }, { status: 400 });

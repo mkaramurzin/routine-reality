@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { title, routineInfo, routineType, startDate, endDate, stages, thresholds } = body;
+  const { title, routineInfo, routineType, wellnessCategories, startDate, endDate, stages, thresholds } = body;
 
   // Basic validation
   if (
@@ -91,11 +91,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid input data." }, { status: 400 });
   }
 
+  // Validate wellness categories if provided
+  if (wellnessCategories && Array.isArray(wellnessCategories)) {
+    const validCategories = ["overall_health", "brainy", "body", "money", "personal_growth", "body_maintenance", "custom"];
+    const invalidCategories = wellnessCategories.filter((cat: string) => !validCategories.includes(cat));
+    
+    if (invalidCategories.length > 0) {
+      return NextResponse.json({ error: `Invalid wellness categories: ${invalidCategories.join(", ")}` }, { status: 400 });
+    }
+    
+    if (wellnessCategories.length > 4) {
+      return NextResponse.json({ error: "Routines can have a maximum of 4 wellness categories" }, { status: 400 });
+    }
+  }
+
   try {
     const routine = await createRoutine(clerkUserId, {
       title,
       routineInfo,
       routineType,
+      wellnessCategories: wellnessCategories || [], // Include wellness categories
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       stages,

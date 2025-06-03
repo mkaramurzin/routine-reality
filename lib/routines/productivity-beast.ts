@@ -15,12 +15,13 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
     throw new Error("User not found");
   }
 
-  // Create the routine
+  // Create the routine with wellness categories
   const [routine] = await db.insert(routines).values({
     userId: user.id,
     title: "Productivity Beast",
     routineInfo: "Maximize your output and crush your goals with intense focus sessions",
     routineType: "template",
+    wellnessCategories: ["brainy", "personal_growth", "money"], // Mental focus, self-improvement, work productivity
     startDate: new Date(),
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     stages: 3,
@@ -68,12 +69,13 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
     scheduledMinute: 0,
   }).returning();
 
-  // Create tasks for Week One
+  // Create tasks for Week One with wellness categories
   const weekOneTasks = await db.insert(tasks).values([
     {
       taskSetId: taskSet1.id,
       title: "Plan your top 3 priorities",
       description: "Identify the 3 most important tasks for the day",
+      wellnessCategories: ["brainy", "personal_growth"], // Mental planning and goal setting
       isOptional: false,
       order: 1,
     },
@@ -81,6 +83,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet1.id,
       title: "Complete one focused work session",
       description: "Work on your most important task for 25 minutes without distractions",
+      wellnessCategories: ["brainy"], // Cognitive focus
       isOptional: false,
       order: 2,
     },
@@ -88,6 +91,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet1.id,
       title: "Review and organize your workspace",
       description: "Clean and organize your physical and digital workspace",
+      wellnessCategories: ["personal_growth"], // Organization and efficiency
       isOptional: false,
       order: 3,
     },
@@ -99,6 +103,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Plan your top 3 priorities",
       description: "Identify the 3 most important tasks for the day",
+      wellnessCategories: ["brainy", "personal_growth"],
       isOptional: false,
       order: 1,
     },
@@ -106,6 +111,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Complete two focused work sessions",
       description: "Work on important tasks for two 25-minute sessions",
+      wellnessCategories: ["brainy"],
       isOptional: false,
       order: 2,
     },
@@ -113,6 +119,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Time-block your calendar",
       description: "Schedule specific time blocks for different types of work",
+      wellnessCategories: ["personal_growth"], // Time management skills
       isOptional: false,
       order: 3,
     },
@@ -120,6 +127,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Eliminate one distraction",
       description: "Identify and remove one source of distraction from your environment",
+      wellnessCategories: ["brainy"], // Mental clarity and focus
       isOptional: true,
       order: 4,
     }
@@ -131,6 +139,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Plan your top 3 priorities",
       description: "Identify the 3 most important tasks for the day",
+      wellnessCategories: ["brainy", "personal_growth"],
       isOptional: false,
       order: 1,
     },
@@ -138,6 +147,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Complete three focused work sessions",
       description: "Work on important tasks for three 25-minute sessions",
+      wellnessCategories: ["brainy"],
       isOptional: false,
       order: 2,
     },
@@ -145,6 +155,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Practice deep work for 90 minutes",
       description: "Work on your most challenging task for 90 minutes straight",
+      wellnessCategories: ["brainy"], // Deep cognitive work
       isOptional: false,
       order: 3,
     },
@@ -152,6 +163,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Track your energy levels",
       description: "Note when you feel most and least energetic throughout the day",
+      wellnessCategories: ["personal_growth"], // Self-awareness
       isOptional: true,
       order: 4,
     }
@@ -163,6 +175,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet4.id,
       title: "Plan your top 3 priorities",
       description: "Identify the 3 most important tasks for the day",
+      wellnessCategories: ["brainy", "personal_growth"],
       isOptional: false,
       order: 1,
     },
@@ -170,6 +183,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet4.id,
       title: "Complete four focused work sessions",
       description: "Work on important tasks for four 25-minute sessions",
+      wellnessCategories: ["brainy"],
       isOptional: false,
       order: 2,
     },
@@ -177,6 +191,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet4.id,
       title: "Optimize your productivity system",
       description: "Review and improve your productivity methods based on what you've learned",
+      wellnessCategories: ["personal_growth"], // System optimization
       isOptional: false,
       order: 3,
     },
@@ -184,6 +199,7 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
       taskSetId: taskSet4.id,
       title: "Plan next week's goals",
       description: "Set clear objectives for the following week",
+      wellnessCategories: ["money"], // Goal setting for work/financial success
       isOptional: true,
       order: 4,
     }
@@ -203,12 +219,14 @@ export async function createProductivityBeastRoutine(clerkUserId: string) {
 
   const scheduledFor = todayInUserTz.toUTC().toJSDate();
 
+  // Create active tasks with wellness categories
   const activeTasksData = weekOneTasks.map(task => ({
     userId: user.id,
     routineId: routine.id,
     originalTaskId: task.id,
     title: task.title,
     description: task.description,
+    wellnessCategories: task.wellnessCategories || [], // Include wellness categories
     isOptional: task.isOptional,
     order: task.order,
     status: "todo" as const,

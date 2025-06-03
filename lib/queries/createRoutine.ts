@@ -3,10 +3,13 @@ import { routines, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createInitialTimeline } from "@/lib/routines/timeline";
 
+type WellnessCategory = "overall_health" | "brainy" | "body" | "money" | "personal_growth" | "body_maintenance" | "custom";
+
 interface NewRoutine {
   title: string;
   routineInfo: string;
   routineType: "template" | "standard" | "special";
+  wellnessCategories?: WellnessCategory[]; // Optional wellness categories
   startDate: Date;
   endDate: Date;
   stages: number;
@@ -33,6 +36,7 @@ export async function createRoutine(
       title: routineData.title,
       routineInfo: routineData.routineInfo,
       routineType: routineData.routineType,
+      wellnessCategories: routineData.wellnessCategories || [], // Include wellness categories
       startDate: routineData.startDate,
       endDate: routineData.endDate,
       stages: routineData.stages,

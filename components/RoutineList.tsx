@@ -12,12 +12,14 @@ import { getUserRoutines, skipRoutineForDay } from "@/lib/api/routines";
 import RoutineActionsModal from "./RoutineActionsModal";
 import SkipConfirmationModal from "./SkipConfirmationModal";
 import { addToast } from "@heroui/toast";
+import { getRoutineBorderColors, type WellnessCategory } from "@/lib/wellnessColors";
 
 interface Routine {
   id: string;
   title: string;
   routineInfo: string;
   routineType: string;
+  wellnessCategories?: WellnessCategory[];
   startDate: string;
   endDate: string;
   stages: number;
@@ -753,6 +755,9 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
             const isCompleted = isRoutineCompleted(routine);
             const isDisabled = isRoutineDisabled(routine);
             
+            // Get wellness category border colors
+            const borderColors = getRoutineBorderColors(routine.wellnessCategories || []);
+            
             return (
               <Card
                 key={routine.id}
@@ -765,8 +770,18 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
                     ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-600/30'
                     : isCommitted 
                     ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-900/20 dark:to-purple-800/20 dark:border-purple-600/30' 
+                    : routine.wellnessCategories && routine.wellnessCategories.length > 0
+                    ? 'border-4'
                     : ''
                 }`}
+                style={{
+                  ...(routine.wellnessCategories && routine.wellnessCategories.length > 0 && {
+                    borderTopColor: borderColors.borderTopColor,
+                    borderRightColor: borderColors.borderRightColor,
+                    borderBottomColor: borderColors.borderBottomColor,
+                    borderLeftColor: borderColors.borderLeftColor,
+                  })
+                }}
                 isPressable={!isDisabled}
                 onPress={() => handleRoutineClick(routine)}
               >
@@ -943,7 +958,16 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
                   {hiddenRoutinesList.map((routine) => (
                     <Card
                       key={routine.id}
-                      className="shadow-sm opacity-75 border-dashed"
+                      className={`shadow-sm opacity-75 border-dashed ${
+                        routine.wellnessCategories && routine.wellnessCategories.length > 0
+                          ? 'border-4'
+                          : ''
+                      }`}
+                      style={{
+                        ...(routine.wellnessCategories && routine.wellnessCategories.length > 0 && {
+                          ...getRoutineBorderColors(routine.wellnessCategories)
+                        })
+                      }}
                     >
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <div className="flex items-center gap-2">

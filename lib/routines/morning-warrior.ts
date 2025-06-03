@@ -15,12 +15,13 @@ export async function createMorningWarriorRoutine(clerkUserId: string) {
     throw new Error("User not found");
   }
 
-  // Create the routine
+  // Create the routine with wellness categories
   const [routine] = await db.insert(routines).values({
     userId: user.id,
     title: "Morning Warrior",
     routineInfo: "Wake up early and conquer your mornings with powerful habits",
     routineType: "template",
+    wellnessCategories: ["body_maintenance", "personal_growth"], // Morning habits and self-improvement
     startDate: new Date(),
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     stages: 3,
@@ -50,12 +51,13 @@ export async function createMorningWarriorRoutine(clerkUserId: string) {
     scheduledMinute: 0,
   }).returning();
 
-  // Create tasks for Week One
+  // Create tasks for Week One with wellness categories
   const weekOneTasks = await db.insert(tasks).values([
     {
       taskSetId: taskSet1.id,
       title: "Wake up at 6 AM",
       description: "Start your day early and consistently",
+      wellnessCategories: ["body_maintenance"], // Sleep schedule and daily routine
       isOptional: false,
       order: 1,
     },
@@ -63,6 +65,7 @@ export async function createMorningWarriorRoutine(clerkUserId: string) {
       taskSetId: taskSet1.id,
       title: "Drink a glass of water",
       description: "Hydrate your body first thing in the morning",
+      wellnessCategories: ["overall_health"], // Hydration health
       isOptional: false,
       order: 2,
     },
@@ -70,6 +73,7 @@ export async function createMorningWarriorRoutine(clerkUserId: string) {
       taskSetId: taskSet1.id,
       title: "5-minute morning stretch",
       description: "Gentle stretching to wake up your body",
+      wellnessCategories: ["body"], // Physical movement
       isOptional: false,
       order: 3,
     },
@@ -81,6 +85,7 @@ export async function createMorningWarriorRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Wake up at 6 AM",
       description: "Start your day early and consistently",
+      wellnessCategories: ["body_maintenance"],
       isOptional: false,
       order: 1,
     },
@@ -88,6 +93,7 @@ export async function createMorningWarriorRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Drink a glass of water",
       description: "Hydrate your body first thing in the morning",
+      wellnessCategories: ["overall_health"],
       isOptional: false,
       order: 2,
     },
@@ -95,6 +101,7 @@ export async function createMorningWarriorRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "5-minute morning stretch",
       description: "Gentle stretching to wake up your body",
+      wellnessCategories: ["body"],
       isOptional: false,
       order: 3,
     },
@@ -102,6 +109,7 @@ export async function createMorningWarriorRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Write 3 things you're grateful for",
       description: "Practice gratitude to start your day positively",
+      wellnessCategories: ["personal_growth"], // Mental wellness and gratitude
       isOptional: true,
       order: 4,
     }
@@ -121,12 +129,14 @@ export async function createMorningWarriorRoutine(clerkUserId: string) {
 
   const scheduledFor = todayInUserTz.toUTC().toJSDate();
 
+  // Create active tasks with wellness categories
   const activeTasksData = weekOneTasks.map(task => ({
     userId: user.id,
     routineId: routine.id,
     originalTaskId: task.id,
     title: task.title,
     description: task.description,
+    wellnessCategories: task.wellnessCategories || [], // Include wellness categories
     isOptional: task.isOptional,
     order: task.order,
     status: "todo" as const,

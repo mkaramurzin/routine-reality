@@ -3,7 +3,7 @@
 import { useClerk, SignedIn, SignedOut } from "@clerk/nextjs";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { CloudUpload, ChevronDown, User, Menu, X, Sun, Moon } from "lucide-react";
+import { CloudUpload, ChevronDown, User, Menu, X, Sun, Moon, Info } from "lucide-react";
 import {
   Dropdown,
   DropdownTrigger,
@@ -14,6 +14,7 @@ import { Avatar } from "@heroui/avatar";
 import { Button } from "@heroui/button";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
+import WellnessLegendModal from "./WellnessLegendModal";
 
 interface SerializedUser {
   id: string;
@@ -35,6 +36,7 @@ export default function Navbar({ user }: NavbarProps) {
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLegendModalOpen, setIsLegendModalOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // Check if we're on the dashboard page
@@ -146,6 +148,19 @@ export default function Navbar({ user }: NavbarProps) {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex gap-4 items-center">
+            {/* Legend Button - only show when signed in */}
+            <SignedIn>
+              <Button
+                isIconOnly
+                variant="flat"
+                size="sm"
+                onClick={() => setIsLegendModalOpen(true)}
+                aria-label="View wellness categories legend"
+              >
+                <Info className="h-4 w-4" />
+              </Button>
+            </SignedIn>
+
             {/* Theme Toggle Button */}
             <Button
               isIconOnly
@@ -321,6 +336,18 @@ export default function Navbar({ user }: NavbarProps) {
 
                 {/* Navigation links */}
                 <div className="flex flex-col gap-4">
+                  {/* Legend Button for Mobile */}
+                  <button
+                    className="py-2 px-3 hover:bg-default-100 rounded-md transition-colors flex items-center gap-3"
+                    onClick={() => {
+                      setIsLegendModalOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <Info className="h-4 w-4" />
+                    Wellness Legend
+                  </button>
+
                   {/* Theme Toggle for Mobile */}
                   <button
                     className="py-2 px-3 hover:bg-default-100 rounded-md transition-colors flex items-center gap-3"
@@ -365,6 +392,12 @@ export default function Navbar({ user }: NavbarProps) {
           </div>
         </div>
       </div>
+
+      {/* Wellness Legend Modal */}
+      <WellnessLegendModal 
+        isOpen={isLegendModalOpen} 
+        onClose={() => setIsLegendModalOpen(false)} 
+      />
     </header>
   );
 }

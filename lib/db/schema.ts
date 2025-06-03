@@ -6,8 +6,26 @@ import {
     integer,
     boolean,
     jsonb,
+    pgEnum,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
+
+/**
+ * Wellness Categories Enum
+ *
+ * Defines the available wellness categories for tasks and routines.
+ * - Tasks can have max 2 categories
+ * - Routines can have max 4 categories
+ */
+export const wellnessCategory = pgEnum('wellness_category', [
+    'overall_health',
+    'brainy',
+    'body',
+    'money',
+    'personal_growth',
+    'body_maintenance',
+    'custom',
+]);
 
 /**
  * Users Table
@@ -36,6 +54,7 @@ export const users = pgTable("users", {
  * This table defines routines belonging to users.
  * - Routines contain multiple stages and thresholds
  * - Tracks user progress via currentStage and status
+ * - Can have up to 4 wellness categories for visual organization
  */
 export const routines = pgTable("routines", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -43,6 +62,7 @@ export const routines = pgTable("routines", {
     title: text("title").notNull(),
     routineInfo: text("routine_info").notNull(),
     routineType: text("routine_type", { enum: ["template", "standard", "special"] }).notNull(),
+    wellnessCategories: wellnessCategory("wellness_categories").array().notNull().default(sql`'{}'::wellness_category[]`),
     startDate: timestamp("start_date").notNull(),
     endDate: timestamp("end_date").notNull(),
     stages: integer("stages").notNull(),
@@ -79,6 +99,7 @@ export const taskSets = pgTable("task_sets", {
  * This table defines template tasks belonging to task sets.
  * - Tasks can optionally be nested (subtasks) using parentId
  * - Tasks serve as blueprints for daily active tasks
+ * - Can have up to 2 wellness categories for visual organization
  */
 export const tasks = pgTable("tasks", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -86,6 +107,7 @@ export const tasks = pgTable("tasks", {
     parentId: uuid("parent_id"),
     title: text("title").notNull(),
     description: text("description"),
+    wellnessCategories: wellnessCategory("wellness_categories").array().notNull().default(sql`'{}'::wellness_category[]`),
     isOptional: boolean("is_optional").default(false),
     order: integer("order"),
     status: text("status", { enum: ["todo", "in_progress", "completed", "missed"] }).default("todo"),
@@ -104,6 +126,7 @@ export const tasks = pgTable("tasks", {
  * This table stores active daily task instances served to users.
  * - Generated from template tasks each day at 5:00am user local time
  * - Tracks daily user progress and status changes
+ * - Inherits wellness categories from template tasks
  */
 export const activeTasks = pgTable("active_tasks", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -112,6 +135,7 @@ export const activeTasks = pgTable("active_tasks", {
     originalTaskId: uuid("original_task_id").references(() => tasks.id),
     title: text("title").notNull(),
     description: text("description"),
+    wellnessCategories: wellnessCategory("wellness_categories").array().notNull().default(sql`'{}'::wellness_category[]`),
     isOptional: boolean("is_optional").default(false),
     order: integer("order"),
     status: text("status", { enum: ["todo", "in_progress", "completed", "missed"] }).default("todo"),
@@ -127,6 +151,7 @@ export const activeTasks = pgTable("active_tasks", {
  *
  * This table stores archived daily tasks after midnight cron runs.
  * - Records completed and missed tasks for audit and tracking purposes
+ * - Preserves wellness categories for historical analysis
  */
 export const taskHistory = pgTable("task_history", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -136,6 +161,7 @@ export const taskHistory = pgTable("task_history", {
     activeTaskId: uuid("active_task_id").references(() => activeTasks.id),
     title: text("title").notNull(),
     description: text("description"),
+    wellnessCategories: wellnessCategory("wellness_categories").array().notNull().default(sql`'{}'::wellness_category[]`),
     isOptional: boolean("is_optional").default(false),
     status: text("status", { enum: ["completed", "missed", "skipped"] }).notNull(),
     scheduledFor: timestamp("scheduled_for").notNull(),
@@ -149,6 +175,7 @@ export const taskHistory = pgTable("task_history", {
  *
  * This table captures any active tasks left unmarked at the end of the day.
  * - Allows tracking and optional rescue of uncompleted tasks after daily cutoff
+ * - Preserves wellness categories for potential task recovery
  */
 export const unmarkedTasks = pgTable("unmarked_tasks", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -158,6 +185,7 @@ export const unmarkedTasks = pgTable("unmarked_tasks", {
     activeTaskId: uuid("active_task_id").references(() => activeTasks.id),
     title: text("title").notNull(),
     description: text("description"),
+    wellnessCategories: wellnessCategory("wellness_categories").array().notNull().default(sql`'{}'::wellness_category[]`),
     isOptional: boolean("is_optional").default(false),
     scheduledFor: timestamp("scheduled_for").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),

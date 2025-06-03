@@ -1,13 +1,15 @@
 import React from "react";
 import { Button } from "@heroui/button";
 import { CheckCircle, XCircle, RotateCcw, SkipForward, Lock } from "lucide-react";
+import { getTaskColors, WELLNESS_COLORS, type WellnessCategory } from "@/lib/wellnessColors";
 
 interface Task {
   id: string;
   title: string;
   description: string | null;
   status: "todo" | "in_progress" | "completed" | "missed" | "skipped";
-  categoryColor?: string; // Optional color property for the task
+  wellnessCategories?: WellnessCategory[]; // New wellness categories array
+  categoryColor?: string; // Keep for backward compatibility
 }
 
 interface TaskCardProps {
@@ -22,7 +24,8 @@ interface TaskCardProps {
 }
 
 interface StyleProps {
-  background: string;
+  background?: string;
+  backgroundImage?: string;
   borderColor: string;
   boxShadow: string;
   borderLeft: string;
@@ -42,11 +45,80 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const isCompleted = task.status === "completed";
   const isMissed = task.status === "missed";
   const isSkipped = task.status === "skipped";
-  const cardColor = task.categoryColor || "#1E90FF"; // Use provided color or default to blue
+  
+  // Get wellness category colors or fallback to legacy categoryColor or default
+  const wellnessColors = getTaskColors(task.wellnessCategories || []);
+  const cardColor = task.categoryColor || "#1E90FF"; // Fallback for backward compatibility
+  const primaryWellnessColor = task.wellnessCategories && task.wellnessCategories.length > 0 
+    ? WELLNESS_COLORS[task.wellnessCategories[0]] 
+    : cardColor;
   
   // Calculate background color based on theme and status
   const getBgStyle = (): StyleProps => {
-    // Base styles depending on theme
+    // Use wellness categories if available
+    if (task.wellnessCategories && task.wellnessCategories.length > 0) {
+      let baseStyles = currentTheme === "light" 
+        ? {
+            ...wellnessColors,
+            borderColor: `${primaryWellnessColor}50`,
+            boxShadow: `0 4px 6px -1px ${primaryWellnessColor}10, 0 2px 4px -1px ${primaryWellnessColor}05`,
+            borderLeft: `3px solid ${primaryWellnessColor}`
+          }
+        : {
+            ...wellnessColors,
+            borderColor: primaryWellnessColor,
+            boxShadow: `0 4px 6px -1px ${primaryWellnessColor}30, 0 2px 4px -1px ${primaryWellnessColor}20`,
+            borderLeft: `3px solid ${primaryWellnessColor}`
+          };
+
+      // Special styling for immutable tasks
+      if (isImmutable) {
+        return {
+          ...baseStyles,
+          opacity: 0.6,
+          background: currentTheme === "light"
+            ? `linear-gradient(to right, #64748b15, #64748b05)`
+            : `linear-gradient(to right, #64748b30, #64748b15)`,
+          borderLeft: `3px solid #64748b`,
+          borderColor: currentTheme === "light" ? "#64748b30" : "#64748b50"
+        };
+      }
+            
+      // Modify styles based on status
+      if (isCompleted) {
+        return {
+          ...baseStyles,
+          opacity: 0.85,
+          borderLeft: `3px solid ${primaryWellnessColor}80`
+        };
+      }
+      
+      if (isMissed) {
+        return {
+          ...baseStyles,
+          opacity: 0.7,
+          background: currentTheme === "light"
+            ? `linear-gradient(to right, #88888815, #88888805)`
+            : `linear-gradient(to right, #33333330, #33333315)`,
+          borderLeft: `3px solid #888888`
+        };
+      }
+
+      if (isSkipped) {
+        return {
+          ...baseStyles,
+          opacity: 0.6,
+          background: currentTheme === "light"
+            ? `linear-gradient(to right, #f59e0b15, #f59e0b05)`
+            : `linear-gradient(to right, #f59e0b30, #f59e0b15)`,
+          borderLeft: `3px solid #f59e0b`
+        };
+      }
+      
+      return baseStyles;
+    }
+
+    // Fallback to legacy color system
     let baseStyles = currentTheme === "light" 
       ? {
           background: `linear-gradient(to right, ${cardColor}15, ${cardColor}05)`,
@@ -120,6 +192,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
       }`} 
       style={{ 
         background: styles.background,
+        backgroundImage: styles.backgroundImage,
         borderLeft: styles.borderLeft,
         borderColor: styles.borderColor,
         boxShadow: styles.boxShadow,
@@ -163,7 +236,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 isSkipped ? 'bg-amber-500' :
                 isImmutable ? 'bg-slate-400' : ''
               }`} 
-              style={{ backgroundColor: !isCompleted && !isMissed && !isSkipped && !isImmutable ? cardColor : undefined }}
+              style={{ 
+                backgroundColor: !isCompleted && !isMissed && !isSkipped && !isImmutable 
+                  ? primaryWellnessColor
+                  : undefined 
+              }}
             ></div>
             <h3 
               className={`font-medium text-lg text-default-900 ${
@@ -222,8 +299,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 size="sm" 
                 variant="flat"
                 style={{
-                  color: cardColor,
-                  borderColor: cardColor
+                  color: primaryWellnessColor,
+                  borderColor: primaryWellnessColor
                 }}
               >
                 Complete

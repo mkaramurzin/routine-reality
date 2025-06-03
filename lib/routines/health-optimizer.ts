@@ -15,12 +15,13 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
     throw new Error("User not found");
   }
 
-  // Create the routine
+  // Create the routine with wellness categories
   const [routine] = await db.insert(routines).values({
     userId: user.id,
     title: "Health Optimizer",
     routineInfo: "Build lasting health habits with nutrition, exercise, and recovery",
     routineType: "template",
+    wellnessCategories: ["overall_health", "body", "body_maintenance"], // Comprehensive health focus
     startDate: new Date(),
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     stages: 3,
@@ -59,12 +60,13 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
     scheduledMinute: 0,
   }).returning();
 
-  // Create tasks for Week One
+  // Create tasks for Week One with wellness categories
   const weekOneTasks = await db.insert(tasks).values([
     {
       taskSetId: taskSet1.id,
       title: "Drink 8 glasses of water",
       description: "Stay properly hydrated throughout the day",
+      wellnessCategories: ["overall_health"], // Hydration health
       isOptional: false,
       order: 1,
     },
@@ -72,6 +74,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet1.id,
       title: "Exercise for 30 minutes",
       description: "Any form of physical activity - walking, gym, sports, etc.",
+      wellnessCategories: ["body"], // Physical fitness
       isOptional: false,
       order: 2,
     },
@@ -79,6 +82,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet1.id,
       title: "Get 7-8 hours of sleep",
       description: "Prioritize quality sleep for recovery and health",
+      wellnessCategories: ["body_maintenance"], // Sleep and recovery
       isOptional: false,
       order: 3,
     },
@@ -90,6 +94,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Drink 8 glasses of water",
       description: "Stay properly hydrated throughout the day",
+      wellnessCategories: ["overall_health"],
       isOptional: false,
       order: 1,
     },
@@ -97,6 +102,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Exercise for 45 minutes",
       description: "Increase exercise duration with varied activities",
+      wellnessCategories: ["body"],
       isOptional: false,
       order: 2,
     },
@@ -104,6 +110,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Get 7-8 hours of sleep",
       description: "Prioritize quality sleep for recovery and health",
+      wellnessCategories: ["body_maintenance"],
       isOptional: false,
       order: 3,
     },
@@ -111,6 +118,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Track your meals",
       description: "Log what you eat to become more mindful of nutrition",
+      wellnessCategories: ["overall_health"], // Nutrition awareness
       isOptional: true,
       order: 4,
     }
@@ -122,6 +130,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Drink 8 glasses of water",
       description: "Stay properly hydrated throughout the day",
+      wellnessCategories: ["overall_health"],
       isOptional: false,
       order: 1,
     },
@@ -129,6 +138,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Exercise for 60 minutes",
       description: "Peak exercise duration with strength and cardio",
+      wellnessCategories: ["body"],
       isOptional: false,
       order: 2,
     },
@@ -136,6 +146,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Get 7-8 hours of sleep",
       description: "Prioritize quality sleep for recovery and health",
+      wellnessCategories: ["body_maintenance"],
       isOptional: false,
       order: 3,
     },
@@ -143,6 +154,7 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Take a 10-minute walk after meals",
       description: "Improve digestion and maintain energy levels",
+      wellnessCategories: ["body"], // Physical movement and digestion
       isOptional: true,
       order: 4,
     }
@@ -162,12 +174,14 @@ export async function createHealthOptimizerRoutine(clerkUserId: string) {
 
   const scheduledFor = todayInUserTz.toUTC().toJSDate();
 
+  // Create active tasks with wellness categories
   const activeTasksData = weekOneTasks.map(task => ({
     userId: user.id,
     routineId: routine.id,
     originalTaskId: task.id,
     title: task.title,
     description: task.description,
+    wellnessCategories: task.wellnessCategories || [], // Include wellness categories
     isOptional: task.isOptional,
     order: task.order,
     status: "todo" as const,

@@ -15,12 +15,13 @@ export async function createMonkModeRoutine(clerkUserId: string) {
     throw new Error("User not found");
   }
 
-  // Create the routine
+  // Create the routine with wellness categories
   const [routine] = await db.insert(routines).values({
     userId: user.id,
     title: "Monk Mode",
     routineInfo: "Achieve deep focus and productivity through disciplined daily habits",
     routineType: "template",
+    wellnessCategories: ["personal_growth", "brainy", "body_maintenance"], // Focus, mental clarity, discipline
     startDate: new Date(),
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     stages: 3,
@@ -59,12 +60,13 @@ export async function createMonkModeRoutine(clerkUserId: string) {
     scheduledMinute: 0,
   }).returning();
 
-  // Create tasks for Week One
+  // Create tasks for Week One with wellness categories
   const weekOneTasks = await db.insert(tasks).values([
     {
       taskSetId: taskSet1.id,
       title: "Meditate for 10 minutes",
       description: "Meditate for 10 minutes",
+      wellnessCategories: ["brainy", "personal_growth"], // Mental wellness and self-improvement
       isOptional: false,
       order: 1,
     },
@@ -72,6 +74,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet1.id,
       title: "Exercise for 30 minutes",
       description: "Do a workout, run, play a sport, or anything that gets your body moving",
+      wellnessCategories: ["body"], // Physical fitness
       isOptional: false,
       order: 2,
     },
@@ -79,6 +82,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet1.id,
       title: "Go to bed sober",
       description: "No weed or alcohol",
+      wellnessCategories: ["overall_health"], // Health habit
       isOptional: false,
       order: 3,
     },
@@ -90,6 +94,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Meditate for 10 minutes",
       description: "Meditate for 10 minutes",
+      wellnessCategories: ["brainy", "personal_growth"],
       isOptional: false,
       order: 1,
     },
@@ -97,6 +102,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Exercise for 30 minutes",
       description: "Do a workout, run, play a sport, or anything that gets your body moving",
+      wellnessCategories: ["body"],
       isOptional: false,
       order: 2,
     },
@@ -104,6 +110,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Go to bed sober",
       description: "No weed or alcohol",
+      wellnessCategories: ["overall_health"],
       isOptional: false,
       order: 3,
     },
@@ -111,6 +118,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet2.id,
       title: "Weekly Variable",
       description: "Read 10 pages of a book",
+      wellnessCategories: ["brainy"], // Mental development
       isOptional: true,
       order: 4,
     }
@@ -122,6 +130,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Meditate for 10 minutes",
       description: "Meditate for 10 minutes",
+      wellnessCategories: ["brainy", "personal_growth"],
       isOptional: false,
       order: 1,
     },
@@ -129,6 +138,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Exercise for 30 minutes",
       description: "Do a workout, run, play a sport, or anything that gets your body moving",
+      wellnessCategories: ["body"],
       isOptional: false,
       order: 2,
     },
@@ -136,6 +146,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Go to bed sober",
       description: "No weed or alcohol",
+      wellnessCategories: ["overall_health"],
       isOptional: false,
       order: 3,
     },
@@ -143,6 +154,7 @@ export async function createMonkModeRoutine(clerkUserId: string) {
       taskSetId: taskSet3.id,
       title: "Weekly Variable",
       description: "Call a parent or family member",
+      wellnessCategories: ["personal_growth"], // Relationship and personal development
       isOptional: true,
       order: 4,
     }
@@ -163,12 +175,14 @@ export async function createMonkModeRoutine(clerkUserId: string) {
   // Store in UTC for consistency
   const scheduledFor = todayInUserTz.toUTC().toJSDate();
 
+  // Create active tasks with wellness categories
   const activeTasksData = weekOneTasks.map(task => ({
     userId: user.id,
     routineId: routine.id,
     originalTaskId: task.id,
     title: task.title,
     description: task.description,
+    wellnessCategories: task.wellnessCategories || [], // Include wellness categories
     isOptional: task.isOptional,
     order: task.order,
     status: "todo" as const,

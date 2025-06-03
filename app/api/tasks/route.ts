@@ -81,10 +81,24 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { routineId, title, description, isOptional, order, scheduledFor } = body;
+  const { routineId, title, description, wellnessCategories, isOptional, order, scheduledFor } = body;
 
   if (!routineId || !title || typeof title !== "string" || !scheduledFor) {
     return NextResponse.json({ error: "Invalid input data." }, { status: 400 });
+  }
+
+  // Validate wellness categories if provided
+  if (wellnessCategories && Array.isArray(wellnessCategories)) {
+    const validCategories = ["overall_health", "brainy", "body", "money", "personal_growth", "body_maintenance", "custom"];
+    const invalidCategories = wellnessCategories.filter((cat: string) => !validCategories.includes(cat));
+    
+    if (invalidCategories.length > 0) {
+      return NextResponse.json({ error: `Invalid wellness categories: ${invalidCategories.join(", ")}` }, { status: 400 });
+    }
+    
+    if (wellnessCategories.length > 2) {
+      return NextResponse.json({ error: "Tasks can have a maximum of 2 wellness categories" }, { status: 400 });
+    }
   }
 
   try {
@@ -92,6 +106,7 @@ export async function POST(request: NextRequest) {
       routineId,
       title,
       description,
+      wellnessCategories: wellnessCategories || [], // Include wellness categories
       isOptional,
       order,
       scheduledFor: new Date(scheduledFor),

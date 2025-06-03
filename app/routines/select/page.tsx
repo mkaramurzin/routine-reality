@@ -8,6 +8,7 @@ import { Button } from '@heroui/button';
 import { Badge } from '@heroui/badge';
 import Navbar from '@/components/Navbar';
 import { AVAILABLE_ROUTINES, createRoutineForUser, type RoutineKey } from '@/lib/routineLibrary';
+import { getRoutineBorderColors } from '@/lib/wellnessColors';
 
 // Type for user routine from database
 interface UserRoutine {
@@ -131,13 +132,24 @@ export default function SelectRoutinePage() {
                 {AVAILABLE_ROUTINES.map((routine) => {
                   const isOwned = isRoutineAlreadyOwned(routine.title);
                   const isDisabled = isCreating || isOwned;
+                  const borderColors = getRoutineBorderColors(routine.wellnessCategories);
                   
                   return (
                     <Card 
                       key={routine.key}
-                      className={`hover:shadow-lg transition-shadow duration-200 border border-default-200 ${
+                      className={`hover:shadow-lg transition-shadow duration-200 ${
                         isOwned ? 'grayscale opacity-60 cursor-not-allowed' : ''
+                      } ${
+                        routine.wellnessCategories.length > 0 ? 'border-4' : 'border border-default-200'
                       }`}
+                      style={{
+                        ...(routine.wellnessCategories.length > 0 && !isOwned && {
+                          borderTopColor: borderColors.borderTopColor,
+                          borderRightColor: borderColors.borderRightColor,
+                          borderBottomColor: borderColors.borderBottomColor,
+                          borderLeftColor: borderColors.borderLeftColor,
+                        })
+                      }}
                       isPressable={!isDisabled}
                     >
                       <CardBody className="p-6">

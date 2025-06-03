@@ -57,80 +57,150 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const getBgStyle = (): StyleProps => {
     // Use wellness categories if available
     if (task.wellnessCategories && task.wellnessCategories.length > 0) {
-      let baseStyles = currentTheme === "light" 
-        ? {
-            ...wellnessColors,
-            borderColor: `${primaryWellnessColor}50`,
-            boxShadow: `0 4px 6px -1px ${primaryWellnessColor}10, 0 2px 4px -1px ${primaryWellnessColor}05`,
-            borderLeft: `3px solid ${primaryWellnessColor}`
-          }
-        : {
-            ...wellnessColors,
-            borderColor: primaryWellnessColor,
-            boxShadow: `0 4px 6px -1px ${primaryWellnessColor}30, 0 2px 4px -1px ${primaryWellnessColor}20`,
-            borderLeft: `3px solid ${primaryWellnessColor}`
+      // For single category - subtle colored background
+      if (task.wellnessCategories.length === 1) {
+        let baseStyles = currentTheme === "light" 
+          ? {
+              background: `linear-gradient(to right, ${primaryWellnessColor}08, ${primaryWellnessColor}03)`,
+              borderColor: `${primaryWellnessColor}30`,
+              boxShadow: `0 4px 6px -1px ${primaryWellnessColor}10, 0 2px 4px -1px ${primaryWellnessColor}05`,
+              borderLeft: `4px solid ${primaryWellnessColor}`
+            }
+          : {
+              background: `linear-gradient(to right, ${primaryWellnessColor}12, ${primaryWellnessColor}06)`,
+              borderColor: `${primaryWellnessColor}40`,
+              boxShadow: `0 4px 6px -1px ${primaryWellnessColor}20, 0 2px 4px -1px ${primaryWellnessColor}10`,
+              borderLeft: `4px solid ${primaryWellnessColor}`
+            };
+
+        // Special styling for immutable tasks
+        if (isImmutable) {
+          return {
+            ...baseStyles,
+            opacity: 0.6,
+            background: currentTheme === "light"
+              ? `linear-gradient(to right, #64748b08, #64748b03)`
+              : `linear-gradient(to right, #64748b12, #64748b06)`,
+            borderLeft: `4px solid #64748b`,
+            borderColor: currentTheme === "light" ? "#64748b30" : "#64748b40"
           };
+        }
+              
+        // Modify styles based on status
+        if (isCompleted) {
+          return {
+            ...baseStyles,
+            opacity: 0.85,
+            borderLeft: `4px solid ${primaryWellnessColor}80`
+          };
+        }
+        
+        if (isMissed) {
+          return {
+            ...baseStyles,
+            opacity: 0.7,
+            background: currentTheme === "light"
+              ? `linear-gradient(to right, #88888808, #88888803)`
+              : `linear-gradient(to right, #88888812, #88888806)`,
+            borderLeft: `4px solid #888888`
+          };
+        }
 
-      // Special styling for immutable tasks
-      if (isImmutable) {
-        return {
-          ...baseStyles,
-          opacity: 0.6,
-          background: currentTheme === "light"
-            ? `linear-gradient(to right, #64748b15, #64748b05)`
-            : `linear-gradient(to right, #64748b30, #64748b15)`,
-          borderLeft: `3px solid #64748b`,
-          borderColor: currentTheme === "light" ? "#64748b30" : "#64748b50"
-        };
-      }
-            
-      // Modify styles based on status
-      if (isCompleted) {
-        return {
-          ...baseStyles,
-          opacity: 0.85,
-          borderLeft: `3px solid ${primaryWellnessColor}80`
-        };
-      }
-      
-      if (isMissed) {
-        return {
-          ...baseStyles,
-          opacity: 0.7,
-          background: currentTheme === "light"
-            ? `linear-gradient(to right, #88888815, #88888805)`
-            : `linear-gradient(to right, #33333330, #33333315)`,
-          borderLeft: `3px solid #888888`
-        };
+        if (isSkipped) {
+          return {
+            ...baseStyles,
+            opacity: 0.6,
+            background: currentTheme === "light"
+              ? `linear-gradient(to right, #f59e0b08, #f59e0b03)`
+              : `linear-gradient(to right, #f59e0b12, #f59e0b06)`,
+            borderLeft: `4px solid #f59e0b`
+          };
+        }
+        
+        return baseStyles;
       }
 
-      if (isSkipped) {
-        return {
-          ...baseStyles,
-          opacity: 0.6,
-          background: currentTheme === "light"
-            ? `linear-gradient(to right, #f59e0b15, #f59e0b05)`
-            : `linear-gradient(to right, #f59e0b30, #f59e0b15)`,
-          borderLeft: `3px solid #f59e0b`
-        };
+      // For dual categories - split diagonal background
+      if (task.wellnessCategories.length === 2) {
+        const color1 = WELLNESS_COLORS[task.wellnessCategories[0]];
+        const color2 = WELLNESS_COLORS[task.wellnessCategories[1]];
+        
+        let baseStyles = currentTheme === "light" 
+          ? {
+              backgroundImage: `linear-gradient(135deg, ${color1}08 50%, ${color2}08 50%)`,
+              borderColor: `${color1}30`,
+              boxShadow: `0 4px 6px -1px ${color1}10, 0 2px 4px -1px ${color2}10`,
+              borderLeft: `4px solid transparent`,
+              background: `linear-gradient(135deg, ${color1} 50%, ${color2} 50%) border-box`,
+            }
+          : {
+              backgroundImage: `linear-gradient(135deg, ${color1}12 50%, ${color2}12 50%)`,
+              borderColor: `${color1}40`,
+              boxShadow: `0 4px 6px -1px ${color1}20, 0 2px 4px -1px ${color2}20`,
+              borderLeft: `4px solid transparent`,
+              background: `linear-gradient(135deg, ${color1} 50%, ${color2} 50%) border-box`,
+            };
+
+        // Special styling for immutable tasks
+        if (isImmutable) {
+          return {
+            ...baseStyles,
+            opacity: 0.6,
+            backgroundImage: currentTheme === "light"
+              ? `linear-gradient(135deg, #64748b08 50%, #64748b08 50%)`
+              : `linear-gradient(135deg, #64748b12 50%, #64748b12 50%)`,
+            borderLeft: `4px solid #64748b`,
+            borderColor: currentTheme === "light" ? "#64748b30" : "#64748b40"
+          };
+        }
+              
+        // Modify styles based on status
+        if (isCompleted) {
+          return {
+            ...baseStyles,
+            opacity: 0.85,
+          };
+        }
+        
+        if (isMissed) {
+          return {
+            ...baseStyles,
+            opacity: 0.7,
+            backgroundImage: currentTheme === "light"
+              ? `linear-gradient(135deg, #88888808 50%, #88888808 50%)`
+              : `linear-gradient(135deg, #88888812 50%, #88888812 50%)`,
+            borderLeft: `4px solid #888888`
+          };
+        }
+
+        if (isSkipped) {
+          return {
+            ...baseStyles,
+            opacity: 0.6,
+            backgroundImage: currentTheme === "light"
+              ? `linear-gradient(135deg, #f59e0b08 50%, #f59e0b08 50%)`
+              : `linear-gradient(135deg, #f59e0b12 50%, #f59e0b12 50%)`,
+            borderLeft: `4px solid #f59e0b`
+          };
+        }
+        
+        return baseStyles;
       }
-      
-      return baseStyles;
     }
 
     // Fallback to legacy color system
     let baseStyles = currentTheme === "light" 
       ? {
-          background: `linear-gradient(to right, ${cardColor}15, ${cardColor}05)`,
-          borderColor: `${cardColor}50`,
+          background: `linear-gradient(to right, ${cardColor}08, ${cardColor}03)`,
+          borderColor: `${cardColor}30`,
           boxShadow: `0 4px 6px -1px ${cardColor}10, 0 2px 4px -1px ${cardColor}05`,
-          borderLeft: `3px solid ${cardColor}`
+          borderLeft: `4px solid ${cardColor}`
         }
       : {
-          background: `linear-gradient(to right, ${cardColor}30, ${cardColor}15)`,
-          borderColor: cardColor,
-          boxShadow: `0 4px 6px -1px ${cardColor}30, 0 2px 4px -1px ${cardColor}20`,
-          borderLeft: `3px solid ${cardColor}`
+          background: `linear-gradient(to right, ${cardColor}12, ${cardColor}06)`,
+          borderColor: `${cardColor}40`,
+          boxShadow: `0 4px 6px -1px ${cardColor}20, 0 2px 4px -1px ${cardColor}10`,
+          borderLeft: `4px solid ${cardColor}`
         };
 
     // Special styling for immutable tasks
@@ -139,10 +209,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
         ...baseStyles,
         opacity: 0.6,
         background: currentTheme === "light"
-          ? `linear-gradient(to right, #64748b15, #64748b05)`
-          : `linear-gradient(to right, #64748b30, #64748b15)`,
-        borderLeft: `3px solid #64748b`,
-        borderColor: currentTheme === "light" ? "#64748b30" : "#64748b50"
+          ? `linear-gradient(to right, #64748b08, #64748b03)`
+          : `linear-gradient(to right, #64748b12, #64748b06)`,
+        borderLeft: `4px solid #64748b`,
+        borderColor: currentTheme === "light" ? "#64748b30" : "#64748b40"
       };
     }
         
@@ -152,9 +222,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
         ...baseStyles,
         opacity: 0.85,
         background: currentTheme === "light" 
-          ? `linear-gradient(to right, ${cardColor}10, ${cardColor}05)`
-          : `linear-gradient(to right, ${cardColor}20, ${cardColor}10)`,
-        borderLeft: `3px solid ${cardColor}80`
+          ? `linear-gradient(to right, ${cardColor}06, ${cardColor}03)`
+          : `linear-gradient(to right, ${cardColor}10, ${cardColor}06)`,
+        borderLeft: `4px solid ${cardColor}80`
       };
     }
     
@@ -163,9 +233,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
         ...baseStyles,
         opacity: 0.7,
         background: currentTheme === "light"
-          ? `linear-gradient(to right, #88888815, #88888805)`
-          : `linear-gradient(to right, #33333330, #33333315)`,
-        borderLeft: `3px solid #888888`
+          ? `linear-gradient(to right, #88888808, #88888803)`
+          : `linear-gradient(to right, #88888812, #88888806)`,
+        borderLeft: `4px solid #888888`
       };
     }
 
@@ -174,9 +244,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
         ...baseStyles,
         opacity: 0.6,
         background: currentTheme === "light"
-          ? `linear-gradient(to right, #f59e0b15, #f59e0b05)`
-          : `linear-gradient(to right, #f59e0b30, #f59e0b15)`,
-        borderLeft: `3px solid #f59e0b`
+          ? `linear-gradient(to right, #f59e0b08, #f59e0b03)`
+          : `linear-gradient(to right, #f59e0b12, #f59e0b06)`,
+        borderLeft: `4px solid #f59e0b`
       };
     }
     

@@ -1,9 +1,12 @@
+import { type WellnessCategory } from "@/lib/wellnessColors";
+
 export interface RoutineDefinition {
   key: string;
   title: string;
   description: string;
   duration: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  wellnessCategories: WellnessCategory[];
 }
 
 export const AVAILABLE_ROUTINES: RoutineDefinition[] = [
@@ -12,28 +15,32 @@ export const AVAILABLE_ROUTINES: RoutineDefinition[] = [
     title: 'Monk Mode',
     description: '3-week intensive routine focused on meditation, exercise, and sobriety to build discipline and mental clarity.',
     duration: '3 weeks',
-    difficulty: 'Advanced'
+    difficulty: 'Advanced',
+    wellnessCategories: ['personal_growth', 'brainy', 'body_maintenance']
   },
   {
     key: 'morning-warrior',
     title: 'Morning Warrior',
     description: '2-week routine to establish a powerful morning routine with exercise, journaling, and goal-setting.',
     duration: '2 weeks', 
-    difficulty: 'Beginner'
+    difficulty: 'Beginner',
+    wellnessCategories: ['body_maintenance', 'personal_growth']
   },
   {
     key: 'productivity-beast',
     title: 'Productivity Beast',
     description: '4-week routine to maximize focus and output through time-blocking, deep work, and energy management.',
     duration: '4 weeks',
-    difficulty: 'Intermediate'
+    difficulty: 'Intermediate',
+    wellnessCategories: ['brainy', 'personal_growth', 'money']
   },
   {
     key: 'health-optimizer',
     title: 'Health Optimizer',
     description: '3-week routine combining nutrition tracking, consistent exercise, and sleep optimization for peak physical performance.',
     duration: '3 weeks',
-    difficulty: 'Intermediate'
+    difficulty: 'Intermediate',
+    wellnessCategories: ['overall_health', 'body', 'body_maintenance']
   }
 ];
 

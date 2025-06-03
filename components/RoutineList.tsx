@@ -772,10 +772,10 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
                     ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-900/20 dark:to-purple-800/20 dark:border-purple-600/30' 
                     : routine.wellnessCategories && routine.wellnessCategories.length > 0
                     ? 'border-4'
-                    : ''
+                    : 'border border-default-200'
                 }`}
                 style={{
-                  ...(routine.wellnessCategories && routine.wellnessCategories.length > 0 && {
+                  ...(routine.wellnessCategories && routine.wellnessCategories.length > 0 && !isCompleted && !isCommitted && {
                     borderTopColor: borderColors.borderTopColor,
                     borderRightColor: borderColors.borderRightColor,
                     borderBottomColor: borderColors.borderBottomColor,
@@ -955,57 +955,64 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
                   These routines are hidden from your main dashboard. Click "Unhide" to restore them.
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {hiddenRoutinesList.map((routine) => (
-                    <Card
-                      key={routine.id}
-                      className={`shadow-sm opacity-75 border-dashed ${
-                        routine.wellnessCategories && routine.wellnessCategories.length > 0
-                          ? 'border-4'
-                          : ''
-                      }`}
-                      style={{
-                        ...(routine.wellnessCategories && routine.wellnessCategories.length > 0 && {
-                          ...getRoutineBorderColors(routine.wellnessCategories)
-                        })
-                      }}
-                    >
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <div className="flex items-center gap-2">
-                          {routine.status === "finished" ? (
-                            <Trophy className="h-4 w-4 text-amber-500" />
-                          ) : (
-                            <div className="w-4 h-4 rounded-full border-2 border-default-300 flex items-center justify-center">
-                              <div className="w-1.5 h-1.5 rounded-full bg-default-400"></div>
-                            </div>
-                          )}
-                          <h3 className="font-medium truncate text-default-700 text-sm">
-                            {routine.title}
-                          </h3>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="flat"
-                          color="primary"
-                          onPress={() => handleToggleHidden(routine.id, false)}
-                        >
-                          Unhide
-                        </Button>
-                      </CardHeader>
-                      <CardBody className="pt-1">
-                        <p className="text-xs text-default-500 line-clamp-2 mb-2">
-                          {routine.routineInfo}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <p className={`text-xs font-medium ${getStatusColor(routine.status)}`}>
-                            {routine.status.charAt(0).toUpperCase() + routine.status.slice(1)}
+                  {hiddenRoutinesList.map((routine) => {
+                    const hiddenBorderColors = getRoutineBorderColors(routine.wellnessCategories || []);
+                    
+                    return (
+                      <Card
+                        key={routine.id}
+                        className={`shadow-sm opacity-75 border-dashed ${
+                          routine.wellnessCategories && routine.wellnessCategories.length > 0
+                            ? 'border-4'
+                            : 'border border-default-200'
+                        }`}
+                        style={{
+                          ...(routine.wellnessCategories && routine.wellnessCategories.length > 0 && {
+                            borderTopColor: hiddenBorderColors.borderTopColor,
+                            borderRightColor: hiddenBorderColors.borderRightColor,
+                            borderBottomColor: hiddenBorderColors.borderBottomColor,
+                            borderLeftColor: hiddenBorderColors.borderLeftColor,
+                          })
+                        }}
+                      >
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                          <div className="flex items-center gap-2">
+                            {routine.status === "finished" ? (
+                              <Trophy className="h-4 w-4 text-amber-500" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border-2 border-default-300 flex items-center justify-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-default-400"></div>
+                              </div>
+                            )}
+                            <h3 className="font-medium truncate text-default-700 text-sm">
+                              {routine.title}
+                            </h3>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            color="primary"
+                            onPress={() => handleToggleHidden(routine.id, false)}
+                          >
+                            Unhide
+                          </Button>
+                        </CardHeader>
+                        <CardBody className="pt-1">
+                          <p className="text-xs text-default-500 line-clamp-2 mb-2">
+                            {routine.routineInfo}
                           </p>
-                          <p className="text-xs text-default-400">
-                            Stage {routine.currentStage}/{routine.stages}
-                          </p>
-                        </div>
-                      </CardBody>
-                    </Card>
-                  ))}
+                          <div className="flex items-center justify-between">
+                            <p className={`text-xs font-medium ${getStatusColor(routine.status)}`}>
+                              {routine.status.charAt(0).toUpperCase() + routine.status.slice(1)}
+                            </p>
+                            <p className="text-xs text-default-400">
+                              Stage {routine.currentStage}/{routine.stages}
+                            </p>
+                          </div>
+                        </CardBody>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             )}

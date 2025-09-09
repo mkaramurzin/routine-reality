@@ -73,11 +73,6 @@ const DashboardClient: React.FC<DashboardClientProps> = ({ userId, userTimezone 
 
   return (
     <div className="space-y-12">
-      {/* Routines Section */}
-      <section>
-        <RoutineList ref={routineListRef} onRoutineSkipped={handleRoutineSkipped} />
-      </section>
-
       {/* Tasks Section */}
       <section>
         {loading ? (
@@ -92,6 +87,11 @@ const DashboardClient: React.FC<DashboardClientProps> = ({ userId, userTimezone 
             <DashboardTaskList ref={taskListRef} userId={userId} onTaskUpdate={handleTaskUpdate} />
           </>
         )}
+      </section>
+
+      {/* Routines Section */}
+      <section>
+        <RoutineList ref={routineListRef} onRoutineSkipped={handleRoutineSkipped} />
       </section>
     </div>
   );

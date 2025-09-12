@@ -226,8 +226,104 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
     }
   };
 
+  // Handle resolving an unmarked task as completed
+  const handleUnmarkedTaskComplete = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}?type=unmarked`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "completed",
+          completedAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error updating task: ${response.statusText}`);
+      }
+
+      // Remove task from local state
+      setUnmarkedTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } catch (err) {
+      console.error("Error completing unmarked task:", err);
+      setError((err as Error).message);
+    }
+  };
+
+  // Handle resolving an unmarked task as missed
+  const handleUnmarkedTaskMissed = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}?type=unmarked`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "missed",
+          missedAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error updating task: ${response.statusText}`);
+      }
+
+      setUnmarkedTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } catch (err) {
+      console.error("Error marking unmarked task as missed:", err);
+      setError((err as Error).message);
+    }
+  };
+
+  const formatDate = (date: string) =>
+    date === "Unknown date"
+      ? date
+      : new Date(date).toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+
+  const groupTasksByDate = (tasks: Task[]) => {
+    const groups: Record<string, Task[]> = {};
+    tasks.forEach((task) => {
+      const key = task.scheduledFor
+        ? new Date(task.scheduledFor).toDateString()
+        : "Unknown date";
+      groups[key] = groups[key] || [];
+      groups[key].push(task);
+    });
+    return Object.entries(groups)
+      .sort(
+        (a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime()
+      )
+      .map(([date, tasks]) => ({ date, tasks }));
+  };
+
   // Render task list for each tab
-  const renderTaskList = (tasks: Task[], loading: boolean, emptyMessage: string, showActions: boolean = false, isHistorical: boolean = false) => {
+  const renderTaskList = (
+    tasks: Task[],
+    loading: boolean,
+    emptyMessage: string,
+    showActions: boolean = false,
+    isHistorical: boolean = false,
+    handlers?: {
+      onComplete?: (id: string) => void;
+      onMissed?: (id: string) => void;
+      onUndo?: (id: string) => void;
+    },
+    groupByDate: boolean = false
+  ) => {
     if (loading) {
       return (
         <div className="flex justify-center items-center py-12">
@@ -244,15 +340,66 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
       );
     }
 
+    if (groupByDate) {
+      const groups = groupTasksByDate(tasks);
+      return (
+        <div className="space-y-6">
+          <div className="text-sm text-default-500 space-y-1">
+            {groups.map((group) => {
+              let summary = `${group.tasks.length} task${group.tasks.length !== 1 ? "s" : ""}`;
+              if (isHistorical) {
+                const completed = group.tasks.filter(
+                  (t) => t.status === "completed"
+                ).length;
+                const missed = group.tasks.filter((t) => t.status === "missed").length;
+                const skipped = group.tasks.filter(
+                  (t) => t.status === "skipped"
+                ).length;
+                const parts = [] as string[];
+                if (completed) parts.push(`${completed} completed`);
+                if (missed) parts.push(`${missed} missed`);
+                if (skipped) parts.push(`${skipped} skipped`);
+                if (parts.length) {
+                  summary += ` (${parts.join(", ")})`;
+                }
+              }
+              return (
+                <div key={`summary-${group.date}`}>
+                  {formatDate(group.date)}: {summary}
+                </div>
+              );
+            })}
+          </div>
+          {groups.map((group) => (
+            <div key={group.date} className="space-y-2">
+              <h3 className="font-medium text-default-600">
+                {formatDate(group.date)}
+              </h3>
+              {group.tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onComplete={showActions ? handlers?.onComplete : undefined}
+                  onMissed={showActions ? handlers?.onMissed : undefined}
+                  onUndo={showActions ? handlers?.onUndo : undefined}
+                  isHistorical={isHistorical}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-2">
         {tasks.map((task) => (
-          <TaskCard 
-            key={task.id} 
-            task={task} 
-            onComplete={showActions ? handleTaskComplete : undefined}
-            onMissed={showActions ? handleTaskMissed : undefined}
-            onUndo={showActions ? handleTaskUndo : undefined}
+          <TaskCard
+            key={task.id}
+            task={task}
+            onComplete={showActions ? handlers?.onComplete : undefined}
+            onMissed={showActions ? handlers?.onMissed : undefined}
+            onUndo={showActions ? handlers?.onUndo : undefined}
             isHistorical={isHistorical}
           />
         ))}
@@ -287,7 +434,18 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
             </div>
           }
         >
-          {renderTaskList(activeTasks, activeLoading, "No active tasks for this routine today.", true)}
+          {renderTaskList(
+            activeTasks,
+            activeLoading,
+            "No active tasks for this routine today.",
+            true,
+            false,
+            {
+              onComplete: handleTaskComplete,
+              onMissed: handleTaskMissed,
+              onUndo: handleTaskUndo,
+            }
+          )}
         </Tab>
         
         <Tab 
@@ -299,7 +457,15 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
             </div>
           }
         >
-          {renderTaskList(historyTasks, historyLoading, "No task history available for this routine.", false, true)}
+          {renderTaskList(
+            historyTasks,
+            historyLoading,
+            "No task history available for this routine.",
+            false,
+            true,
+            undefined,
+            true
+          )}
         </Tab>
         
         <Tab 
@@ -311,7 +477,18 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
             </div>
           }
         >
-          {renderTaskList(unmarkedTasks, unmarkedLoading, "No unmarked tasks for this routine.")}
+          {renderTaskList(
+            unmarkedTasks,
+            unmarkedLoading,
+            "No unmarked tasks for this routine.",
+            true,
+            false,
+            {
+              onComplete: handleUnmarkedTaskComplete,
+              onMissed: handleUnmarkedTaskMissed,
+            },
+            true
+          )}
         </Tab>
       </Tabs>
     </div>

@@ -2,7 +2,13 @@ import { db } from "@/lib/db";
 import { unmarkedTasks, routines, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
-export async function getUnmarkedTasks(clerkUserId: string, routineId: string) {
+// Fetch unmarked tasks for a user. If a routineId is provided, tasks
+// will be limited to that routine. Otherwise, all unmarked tasks for
+// the user are returned.
+export async function getUnmarkedTasks(
+  clerkUserId: string,
+  routineId?: string
+) {
   const user = await db.query.users.findFirst({
     where: eq(users.clerkUserId, clerkUserId),
     columns: { id: true },
@@ -10,14 +16,23 @@ export async function getUnmarkedTasks(clerkUserId: string, routineId: string) {
 
   if (!user) throw new Error("User not found");
 
-  const routine = await db.query.routines.findFirst({
-    where: and(eq(routines.id, routineId), eq(routines.userId, user.id)),
-    columns: { id: true },
-  });
+  if (routineId) {
+    const routine = await db.query.routines.findFirst({
+      where: and(eq(routines.id, routineId), eq(routines.userId, user.id)),
+      columns: { id: true },
+    });
 
-  if (!routine) throw new Error("Routine not found");
+    if (!routine) throw new Error("Routine not found");
+
+    return db.query.unmarkedTasks.findMany({
+      where: and(
+        eq(unmarkedTasks.userId, user.id),
+        eq(unmarkedTasks.routineId, routineId)
+      ),
+    });
+  }
 
   return db.query.unmarkedTasks.findMany({
-    where: and(eq(unmarkedTasks.userId, user.id), eq(unmarkedTasks.routineId, routineId)),
+    where: eq(unmarkedTasks.userId, user.id),
   });
 }

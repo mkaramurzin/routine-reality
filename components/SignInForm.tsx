@@ -66,7 +66,11 @@ export default function SignInForm() {
   const handleGoogleSignIn = async () => {
     if (!isLoaded) return;
     try {
-      await signIn.authenticateWithRedirect({ strategy: "oauth_google" });
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/dashboard",
+      });
     } catch (error) {
       console.error("Google sign-in error:", error);
     }

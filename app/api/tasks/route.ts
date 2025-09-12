@@ -52,10 +52,7 @@ export async function GET(request: NextRequest) {
       const tasks = await getUpcomingTasks(clerkUserId);
       return NextResponse.json(tasks);
     } else if (type === "unmarked") {
-      if (!routineId) {
-        return NextResponse.json({ error: "routineId required for unmarked tasks." }, { status: 400 });
-      }
-      const tasks = await getUnmarkedTasks(clerkUserId, routineId);
+      const tasks = await getUnmarkedTasks(clerkUserId, routineId || undefined);
       return NextResponse.json(tasks);
     } else if (type === "history") {
       if (!routineId) {

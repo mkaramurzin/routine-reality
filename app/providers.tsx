@@ -5,8 +5,8 @@ import * as React from "react";
 import { HeroUIProvider } from "@heroui/system";
 import { useRouter } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import { ToastProvider } from "@heroui/toast";
 import { createContext, useContext } from "react";
+import UnmarkedTasksModal from "@/components/UnmarkedTasksModal";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -57,6 +57,7 @@ export function Providers({ children, themeProps }: ProvidersProps) {
           enableSystem={true}
           {...themeProps}
         >
+          <UnmarkedTasksModal />
           {children}
         </NextThemesProvider>
     </HeroUIProvider>

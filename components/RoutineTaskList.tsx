@@ -226,8 +226,78 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
     }
   };
 
+  // Handle resolving an unmarked task as completed
+  const handleUnmarkedTaskComplete = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}?type=unmarked`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "completed",
+          completedAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error updating task: ${response.statusText}`);
+      }
+
+      // Remove task from local state
+      setUnmarkedTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } catch (err) {
+      console.error("Error completing unmarked task:", err);
+      setError((err as Error).message);
+    }
+  };
+
+  // Handle resolving an unmarked task as missed
+  const handleUnmarkedTaskMissed = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}?type=unmarked`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "missed",
+          missedAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error updating task: ${response.statusText}`);
+      }
+
+      setUnmarkedTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } catch (err) {
+      console.error("Error marking unmarked task as missed:", err);
+      setError((err as Error).message);
+    }
+  };
+
   // Render task list for each tab
-  const renderTaskList = (tasks: Task[], loading: boolean, emptyMessage: string, showActions: boolean = false, isHistorical: boolean = false) => {
+  const renderTaskList = (
+    tasks: Task[],
+    loading: boolean,
+    emptyMessage: string,
+    showActions: boolean = false,
+    isHistorical: boolean = false,
+    handlers?: {
+      onComplete?: (id: string) => void;
+      onMissed?: (id: string) => void;
+      onUndo?: (id: string) => void;
+    }
+  ) => {
     if (loading) {
       return (
         <div className="flex justify-center items-center py-12">
@@ -247,12 +317,12 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
     return (
       <div className="space-y-2">
         {tasks.map((task) => (
-          <TaskCard 
-            key={task.id} 
-            task={task} 
-            onComplete={showActions ? handleTaskComplete : undefined}
-            onMissed={showActions ? handleTaskMissed : undefined}
-            onUndo={showActions ? handleTaskUndo : undefined}
+          <TaskCard
+            key={task.id}
+            task={task}
+            onComplete={showActions ? handlers?.onComplete : undefined}
+            onMissed={showActions ? handlers?.onMissed : undefined}
+            onUndo={showActions ? handlers?.onUndo : undefined}
             isHistorical={isHistorical}
           />
         ))}
@@ -287,7 +357,18 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
             </div>
           }
         >
-          {renderTaskList(activeTasks, activeLoading, "No active tasks for this routine today.", true)}
+          {renderTaskList(
+            activeTasks,
+            activeLoading,
+            "No active tasks for this routine today.",
+            true,
+            false,
+            {
+              onComplete: handleTaskComplete,
+              onMissed: handleTaskMissed,
+              onUndo: handleTaskUndo,
+            }
+          )}
         </Tab>
         
         <Tab 
@@ -311,7 +392,17 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
             </div>
           }
         >
-          {renderTaskList(unmarkedTasks, unmarkedLoading, "No unmarked tasks for this routine.")}
+          {renderTaskList(
+            unmarkedTasks,
+            unmarkedLoading,
+            "No unmarked tasks for this routine.",
+            true,
+            false,
+            {
+              onComplete: handleUnmarkedTaskComplete,
+              onMissed: handleUnmarkedTaskMissed,
+            }
+          )}
         </Tab>
       </Tabs>
     </div>

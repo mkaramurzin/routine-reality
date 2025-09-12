@@ -63,6 +63,19 @@ export default function SignInForm() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    if (!isLoaded) return;
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/dashboard",
+      });
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+    }
+  };
+
   return (
     <Card className="w-full max-w-md border border-default-200 bg-default-50 shadow-xl">
       <CardHeader className="flex flex-col gap-1 items-center pb-2">
@@ -81,6 +94,21 @@ export default function SignInForm() {
             <p>{authError}</p>
           </div>
         )}
+
+        <Button
+          variant="flat"
+          color="default"
+          className="w-full mb-6"
+          onClick={handleGoogleSignIn}
+        >
+          Continue with Google
+        </Button>
+
+        <div className="flex items-center gap-2 mb-6">
+          <Divider className="flex-1" />
+          <span className="text-sm text-default-500">or</span>
+          <Divider className="flex-1" />
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-2">

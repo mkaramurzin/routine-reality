@@ -237,6 +237,13 @@ export default function Navbar({ user }: NavbarProps) {
                       My Routines
                     </DropdownItem>
                     <DropdownItem
+                      key="change-password"
+                      description="Update your account password"
+                      onClick={() => router.push("/change-password")}
+                    >
+                      Change Password
+                    </DropdownItem>
+                    <DropdownItem
                       key="logout"
                       description="Sign out of your account"
                       className="text-danger"

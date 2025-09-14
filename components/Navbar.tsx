@@ -229,30 +229,37 @@ export default function Navbar({ user }: NavbarProps) {
                     >
                       Profile
                     </DropdownItem>
-                    <DropdownItem
-                      key="files"
-                      description="Manage your files"
-                      onClick={() => router.push("/dashboard")}
-                    >
-                      My Routines
-                    </DropdownItem>
-                    <DropdownItem
-                      key="change-password"
-                      description="Update your account password"
-                      onClick={() => router.push("/change-password")}
-                    >
-                      Change Password
-                    </DropdownItem>
-                    <DropdownItem
-                      key="logout"
-                      description="Sign out of your account"
-                      className="text-danger"
-                      color="danger"
-                      onClick={handleSignOut}
-                    >
-                      Sign Out
-                    </DropdownItem>
-                  </DropdownMenu>
+                      <DropdownItem
+                        key="routines"
+                        description="View your routines"
+                        onClick={() => router.push("/dashboard")}
+                      >
+                        My Routines
+                      </DropdownItem>
+                      <DropdownItem
+                        key="settings"
+                        description="Update your preferences"
+                        onClick={() => router.push("/settings")}
+                      >
+                        Settings
+                      </DropdownItem>
+                      <DropdownItem
+                        key="change-password"
+                        description="Update your account password"
+                        onClick={() => router.push("/change-password")}
+                      >
+                        Change Password
+                      </DropdownItem>
+                      <DropdownItem
+                        key="logout"
+                        description="Sign out of your account"
+                        className="text-danger"
+                        color="danger"
+                        onClick={handleSignOut}
+                      >
+                        Sign Out
+                      </DropdownItem>
+                    </DropdownMenu>
                 </Dropdown>
               </div>
             </SignedIn>
@@ -383,6 +390,13 @@ export default function Navbar({ user }: NavbarProps) {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Profile
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className="py-2 px-3 hover:bg-default-100 rounded-md transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Settings
                   </Link>
                   <button
                     className="py-2 px-3 text-left text-danger hover:bg-danger-50 rounded-md transition-colors mt-4"

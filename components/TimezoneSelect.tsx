@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Select, SelectItem } from "@heroui/select";
 import { Globe } from "lucide-react";
+import { DateTime } from "luxon";
 
-const TIMEZONE_OPTIONS = [
+const FALLBACK_TIMEZONE_OPTIONS = [
   { label: "(GMT -08:00) Pacific Time (US & Canada)", value: "America/Los_Angeles" },
   { label: "(GMT -07:00) Mountain Time (US & Canada)", value: "America/Denver" },
   { label: "(GMT -06:00) Central Time (US & Canada)", value: "America/Chicago" },
@@ -16,7 +17,6 @@ const TIMEZONE_OPTIONS = [
   { label: "(GMT +09:00) Japan Standard Time", value: "Asia/Tokyo" },
   { label: "(GMT +10:00) Australian Eastern Time", value: "Australia/Sydney" },
   { label: "(GMT +13:00) New Zealand Daylight Time", value: "Pacific/Auckland" },
-  // Additional 10 timezone options
   { label: "(GMT -03:00) Brazil (São Paulo)", value: "America/Sao_Paulo" },
   { label: "(GMT -05:00) Colombia (Bogotá)", value: "America/Bogota" },
   { label: "(GMT +02:00) South Africa (Cape Town)", value: "Africa/Johannesburg" },
@@ -38,6 +38,18 @@ type Props = {
 
 export function TimezoneSelect({ value, onChange, isInvalid, errorMessage }: Props) {
   const [autoDetected, setAutoDetected] = useState<string>("");
+  const timezoneOptions = useMemo(() => {
+    if (typeof Intl.supportedValuesOf === "function") {
+      return Intl.supportedValuesOf("timeZone").map((tz) => {
+        const offset = DateTime.now().setZone(tz).toFormat("ZZ");
+        return {
+          value: tz,
+          label: `(GMT${offset}) ${tz.replace(/_/g, " ")}`,
+        };
+      });
+    }
+    return FALLBACK_TIMEZONE_OPTIONS;
+  }, []);
 
   useEffect(() => {
     try {
@@ -72,10 +84,8 @@ export function TimezoneSelect({ value, onChange, isInvalid, errorMessage }: Pro
         className="w-full"
         description={autoDetected ? `Auto-detected: ${autoDetected}` : undefined}
       >
-        {TIMEZONE_OPTIONS.map((tz) => (
-          <SelectItem key={tz.value}>
-            {tz.label}
-          </SelectItem>
+        {timezoneOptions.map((tz) => (
+          <SelectItem key={tz.value}>{tz.label}</SelectItem>
         ))}
       </Select>
     </div>

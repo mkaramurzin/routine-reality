@@ -32,7 +32,7 @@ type Props = {
   user: {
     fullName: string | null;
     timezone: string;
-    language: string;
+    language: string | null;
     profilePictureUrl?: string | null;
     productivityGoal?: string | null;
   };
@@ -54,7 +54,7 @@ export default function SettingsForm({ user }: Props) {
     defaultValues: {
       fullName: user.fullName || "",
       timezone: user.timezone || "",
-      language: user.language || "English",
+      language: user.language ?? "English",
       profilePictureUrl: user.profilePictureUrl || "",
       productivityGoal: (user.productivityGoal as SettingsFormData["productivityGoal"]) || undefined,
     },

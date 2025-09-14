@@ -285,6 +285,19 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
     }
   };
 
+  // Helper to group tasks by served day
+  const groupTasksByDay = (tasks: Task[]) => {
+    const groups: Record<string, Task[]> = {};
+    tasks.forEach((task) => {
+      const dateStr =
+        task.scheduledFor || task.completedAt || task.missedAt || "";
+      const day = dateStr ? new Date(dateStr).toDateString() : "Unknown";
+      groups[day] = groups[day] || [];
+      groups[day].push(task);
+    });
+    return groups;
+  };
+
   // Render task list for each tab
   const renderTaskList = (
     tasks: Task[],
@@ -296,7 +309,8 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
       onComplete?: (id: string) => void;
       onMissed?: (id: string) => void;
       onUndo?: (id: string) => void;
-    }
+    },
+    groupByDate: boolean = false
   ) => {
     if (loading) {
       return (
@@ -310,6 +324,41 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
       return (
         <div className="text-center py-8 text-default-500">
           <p>{emptyMessage}</p>
+        </div>
+      );
+    }
+
+    if (groupByDate) {
+      const grouped = groupTasksByDay(tasks);
+      const dates = Object.keys(grouped).sort(
+        (a, b) => new Date(b).getTime() - new Date(a).getTime()
+      );
+      return (
+        <div className="space-y-4">
+          {dates.map((date) => {
+            const dayTasks = grouped[date];
+            const total = dayTasks.length;
+            const summary = `${date} - ${total} task${total !== 1 ? "s" : ""}`;
+            return (
+              <details key={date} open className="rounded-lg border border-default-200 p-2">
+                <summary className="cursor-pointer font-medium">
+                  {summary}
+                </summary>
+                <div className="mt-2 space-y-2">
+                  {dayTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onComplete={showActions ? handlers?.onComplete : undefined}
+                      onMissed={showActions ? handlers?.onMissed : undefined}
+                      onUndo={showActions ? handlers?.onUndo : undefined}
+                      isHistorical={isHistorical}
+                    />
+                  ))}
+                </div>
+              </details>
+            );
+          })}
         </div>
       );
     }
@@ -380,7 +429,15 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
             </div>
           }
         >
-          {renderTaskList(historyTasks, historyLoading, "No task history available for this routine.", false, true)}
+          {renderTaskList(
+            historyTasks,
+            historyLoading,
+            "No task history available for this routine.",
+            false,
+            true,
+            undefined,
+            true
+          )}
         </Tab>
         
         <Tab 
@@ -401,7 +458,8 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
             {
               onComplete: handleUnmarkedTaskComplete,
               onMissed: handleUnmarkedTaskMissed,
-            }
+            },
+            true
           )}
         </Tab>
       </Tabs>

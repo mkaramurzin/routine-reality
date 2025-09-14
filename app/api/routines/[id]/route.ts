@@ -78,7 +78,35 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      // Validate that new stage is valid
+      // Ensure stages advance sequentially
+      if (body.currentStage !== currentRoutine.currentStage + 1) {
+        return NextResponse.json(
+          { error: "Stages must advance sequentially." },
+          { status: 400 }
+        );
+      }
+
+      // Check advancement eligibility
+      const eligibility = await checkStageAdvancementEligibility(
+        clerkUserId,
+        id
+      );
+
+      if (!eligibility) {
+        return NextResponse.json(
+          { error: "Unable to check advancement eligibility." },
+          { status: 500 }
+        );
+      }
+
+      if (!eligibility.canAdvance) {
+        return NextResponse.json(
+          { error: eligibility.reason },
+          { status: 400 }
+        );
+      }
+
+      // Validate that new stage is within bounds
       if (body.currentStage > currentRoutine.stages) {
         return NextResponse.json(
           { error: "Invalid stage number." },

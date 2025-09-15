@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect } from "react";
 import RoutineList, { RoutineListRef } from "./RoutineList";
 import DashboardTaskList, { DashboardTaskListRef } from "./DashboardTaskList";
 import UpcomingTaskList from "./UpcomingTaskList";
+import UnmarkedTasksBanner from "./UnmarkedTasksBanner";
 
 interface DashboardClientProps {
   userId: string;
@@ -73,6 +74,8 @@ const DashboardClient: React.FC<DashboardClientProps> = ({ userId, userTimezone 
 
   return (
     <div className="space-y-12">
+      <UnmarkedTasksBanner onTaskUpdate={handleTaskUpdate} />
+
       {/* Tasks Section */}
       <section>
         {loading ? (

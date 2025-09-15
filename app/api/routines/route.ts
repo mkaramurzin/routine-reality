@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const routines = await getUserRoutines(clerkUserId);
+    const allRoutines = await getUserRoutines(clerkUserId);
+    const routines = allRoutines.filter(routine => routine.status !== "abandoned");
 
     // Get user timezone for today's tasks calculation
     const user = await db.query.users.findFirst({

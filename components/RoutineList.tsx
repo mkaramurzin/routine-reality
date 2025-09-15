@@ -265,7 +265,7 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
 
   const handleAbandon = async () => {
     if (!selectedRoutine) return;
-    
+
     try {
       const response = await fetch(`/api/routines/${selectedRoutine.id}`, {
         method: "PATCH",
@@ -288,9 +288,34 @@ const RoutineList = forwardRef<RoutineListRef, RoutineListProps>(({ onRoutineSki
         color: "success",
       });
 
+      const shouldDelete = window.confirm(
+        "Do you also want to delete this routine?"
+      );
+
+      if (shouldDelete) {
+        const deleteResponse = await fetch(`/api/routines/${selectedRoutine.id}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!deleteResponse.ok) {
+          const errorData = await deleteResponse.json();
+          throw new Error(errorData.error || "Failed to delete routine");
+        }
+
+        const message = `"${selectedRoutine.title}" has been deleted.`;
+        addToast({
+          title: "Routine Deleted",
+          description: message,
+          color: "success",
+        });
+      }
+
       setIsActionsModalOpen(false);
       setSelectedRoutine(null);
-      
+
       // Refresh the routines list
       await fetchRoutines();
     } catch (error) {

@@ -5,6 +5,9 @@ import { updateRoutineById } from "@/lib/queries/updateRoutineById";
 import { deleteRoutineById } from "@/lib/queries/deleteRoutineById";
 import { checkStageAdvancementEligibility } from "@/lib/queries/updateRoutineProgress";
 import { addTimelineEvent, RoutineTimeline } from "@/lib/routines/timeline";
+import { db } from "@/lib/db";
+import { users, activeTasks, unmarkedTasks } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 
 // Helper to extract route param
 function getIdFromUrl(request: NextRequest): string | null {
@@ -289,6 +292,24 @@ export async function PATCH(request: NextRequest) {
         { error: "Routine not found." },
         { status: 404 }
       );
+    }
+
+    // When abandoning a routine, remove any active or unmarked tasks
+    if (updateData.status === "abandoned" && currentRoutine.status !== "abandoned") {
+      const user = await db.query.users.findFirst({
+        where: eq(users.clerkUserId, clerkUserId),
+        columns: { id: true },
+      });
+
+      if (user) {
+        await db
+          .delete(activeTasks)
+          .where(and(eq(activeTasks.userId, user.id), eq(activeTasks.routineId, id)));
+
+        await db
+          .delete(unmarkedTasks)
+          .where(and(eq(unmarkedTasks.userId, user.id), eq(unmarkedTasks.routineId, id)));
+      }
     }
 
     return NextResponse.json(routine);

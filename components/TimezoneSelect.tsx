@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Select, SelectItem } from "@heroui/select";
 import { Globe } from "lucide-react";
-import { DateTime } from "luxon";
 
-const FALLBACK_TIMEZONE_OPTIONS = [
+// Curated timezone options shown during onboarding. These are reused in the
+// settings page to avoid overwhelming users with the full IANA timezone list.
+// The labels include the most common GMT offsets for clarity.
+const TIMEZONE_OPTIONS = [
   { label: "(GMT -08:00) Pacific Time (US & Canada)", value: "America/Los_Angeles" },
   { label: "(GMT -07:00) Mountain Time (US & Canada)", value: "America/Denver" },
   { label: "(GMT -06:00) Central Time (US & Canada)", value: "America/Chicago" },
@@ -38,18 +40,6 @@ type Props = {
 
 export function TimezoneSelect({ value, onChange, isInvalid, errorMessage }: Props) {
   const [autoDetected, setAutoDetected] = useState<string>("");
-  const timezoneOptions = useMemo(() => {
-    if (typeof Intl.supportedValuesOf === "function") {
-      return Intl.supportedValuesOf("timeZone").map((tz) => {
-        const offset = DateTime.now().setZone(tz).toFormat("ZZ");
-        return {
-          value: tz,
-          label: `(GMT${offset}) ${tz.replace(/_/g, " ")}`,
-        };
-      });
-    }
-    return FALLBACK_TIMEZONE_OPTIONS;
-  }, []);
 
   useEffect(() => {
     try {
@@ -84,10 +74,10 @@ export function TimezoneSelect({ value, onChange, isInvalid, errorMessage }: Pro
         className="w-full"
         description={autoDetected ? `Auto-detected: ${autoDetected}` : undefined}
       >
-        {timezoneOptions.map((tz) => (
+        {TIMEZONE_OPTIONS.map((tz) => (
           <SelectItem key={tz.value}>{tz.label}</SelectItem>
         ))}
       </Select>
     </div>
   );
-} 
+}

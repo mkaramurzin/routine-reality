@@ -2,7 +2,15 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { db } from "@/lib/db";
-import { users, routines, taskSets, tasks, activeTasks } from "@/lib/db/schema";
+import {
+  users,
+  routines,
+  taskSets,
+  tasks,
+  activeTasks,
+  unmarkedTasks,
+  taskHistory,
+} from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { updateRoutineById } from "@/lib/queries/updateRoutineById";
 import { addTimelineEvent, RoutineTimeline } from "@/lib/routines/timeline";
@@ -54,14 +62,39 @@ export async function POST(request: NextRequest) {
     console.log(`Resetting routine ${routineId} for user ${user.id}`);
 
     // Step 1: Delete all current active tasks for this routine
-    const deletedTasks = await db.delete(activeTasks)
-      .where(and(
-        eq(activeTasks.userId, user.id),
-        eq(activeTasks.routineId, routine.id)
-      ))
+    const deletedActiveTasks = await db.delete(activeTasks)
+      .where(
+        and(eq(activeTasks.userId, user.id), eq(activeTasks.routineId, routine.id))
+      )
       .returning();
 
-    console.log(`Deleted ${deletedTasks.length} active tasks for routine ${routineId}`);
+    console.log(
+      `Deleted ${deletedActiveTasks.length} active tasks for routine ${routineId}`
+    );
+
+    // Also clear any unmarked tasks and task history entries for this routine
+    const deletedUnmarkedTasks = await db.delete(unmarkedTasks)
+      .where(
+        and(
+          eq(unmarkedTasks.userId, user.id),
+          eq(unmarkedTasks.routineId, routine.id)
+        )
+      )
+      .returning();
+
+    const deletedHistoryTasks = await db.delete(taskHistory)
+      .where(
+        and(
+          eq(taskHistory.userId, user.id),
+          eq(taskHistory.routineId, routine.id)
+        )
+      )
+      .returning();
+
+    const totalTasksDeleted =
+      deletedActiveTasks.length +
+      deletedUnmarkedTasks.length +
+      deletedHistoryTasks.length;
 
     // Step 2: Reset routine to stage 1 with timeline event and reactivate if abandoned
     const currentTimeline = (routine.timeline as RoutineTimeline) || [];
@@ -140,16 +173,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`Reset complete: deleted ${deletedTasks.length} tasks, created ${tasksCreated} new tasks`);
+    console.log(
+      `Reset complete: deleted ${totalTasksDeleted} tasks, created ${tasksCreated} new tasks`
+    );
 
     const wasAbandoned = currentStatus === "abandoned";
     
     return NextResponse.json({
       success: true,
-      tasksDeleted: deletedTasks.length,
+      tasksDeleted: totalTasksDeleted,
       tasksCreated,
       wasReactivated: wasAbandoned,
-      message: `Routine reset to Stage 1${wasAbandoned ? " and reactivated" : ""}. ${deletedTasks.length} old tasks deleted, ${tasksCreated} new tasks created.`,
+      message: `Routine reset to Stage 1${wasAbandoned ? " and reactivated" : ""}. ${totalTasksDeleted} old tasks deleted, ${tasksCreated} new tasks created.`,
     });
   } catch (error) {
     console.error("Routine reset failed:", error);

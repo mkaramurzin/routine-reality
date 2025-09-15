@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { unmarkedTasks, routines, users } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lt } from "drizzle-orm";
 
 // Fetch unmarked tasks for a user. If a routineId is provided, tasks
 // will be limited to that routine. Otherwise, all unmarked tasks for
@@ -16,6 +16,11 @@ export async function getUnmarkedTasks(
 
   if (!user) throw new Error("User not found");
 
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
   if (routineId) {
     const routine = await db.query.routines.findFirst({
       where: and(eq(routines.id, routineId), eq(routines.userId, user.id)),
@@ -27,12 +32,18 @@ export async function getUnmarkedTasks(
     return db.query.unmarkedTasks.findMany({
       where: and(
         eq(unmarkedTasks.userId, user.id),
-        eq(unmarkedTasks.routineId, routineId)
+        eq(unmarkedTasks.routineId, routineId),
+        gte(unmarkedTasks.createdAt, startOfToday),
+        lt(unmarkedTasks.createdAt, startOfTomorrow)
       ),
     });
   }
 
   return db.query.unmarkedTasks.findMany({
-    where: eq(unmarkedTasks.userId, user.id),
+    where: and(
+      eq(unmarkedTasks.userId, user.id),
+      gte(unmarkedTasks.createdAt, startOfToday),
+      lt(unmarkedTasks.createdAt, startOfTomorrow)
+    ),
   });
 }

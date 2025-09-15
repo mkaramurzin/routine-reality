@@ -27,6 +27,15 @@ export async function resolveUnmarkedTaskById(
 
   if (!task || task.userId !== user.id) return null;
 
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
+  if (task.createdAt < startOfToday || task.createdAt >= startOfTomorrow) {
+    return null;
+  }
+
   const status = data.status;
   const completedAt = status === "completed" ? data.completedAt ?? new Date() : null;
   const missedAt = status === "missed" ? data.missedAt ?? new Date() : null;

@@ -72,6 +72,17 @@ export async function PATCH(request: NextRequest) {
   ) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
+  const taskIsImmutable = await isTaskImmutable(taskId, "unmarked");
+  if (taskIsImmutable) {
+    return NextResponse.json(
+      {
+        error:
+          "This task is immutable and cannot be modified. It belongs to a previous stage that has been locked.",
+        code: "TASK_IMMUTABLE",
+      },
+      { status: 403 }
+    );
+  }
 
   const resolved = await resolveUnmarkedTaskById(
     clerkUserId,

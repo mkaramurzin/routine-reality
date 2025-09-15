@@ -1,7 +1,7 @@
 // Task immutability utilities for stage-based locking
 
 import { db } from "@/lib/db";
-import { routines, tasks, taskSets, activeTasks } from "@/lib/db/schema";
+import { routines, tasks, taskSets, activeTasks, unmarkedTasks } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
 /**
@@ -25,10 +25,16 @@ export async function isTaskImmutable(
       });
       originalTaskId = activeTask?.originalTaskId || null;
       currentRoutineId = activeTask?.routineId || routineId;
+    } else if (taskType === "unmarked") {
+      const unmarked = await db.query.unmarkedTasks.findFirst({
+        where: eq(unmarkedTasks.id, taskId),
+        columns: { originalTaskId: true, routineId: true },
+      });
+      originalTaskId = unmarked?.originalTaskId || null;
+      currentRoutineId = unmarked?.routineId || routineId;
     } else {
-      // For history and unmarked tasks, they should have originalTaskId directly
-      // We'll need to query those tables when we implement them
-      return false; // For now, return false for non-active tasks
+      // For history tasks, immutability not enforced yet
+      return false;
     }
 
     if (!originalTaskId || !currentRoutineId) {

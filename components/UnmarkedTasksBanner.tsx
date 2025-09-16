@@ -95,22 +95,23 @@ export default function UnmarkedTasksBanner({ onTaskUpdate }: Props) {
   if (loading || routineIds.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-default-200 bg-default-100 p-4 mb-8">
-      <p className="font-medium mb-2">You have unmarked tasks from yesterday:</p>
+    <div className="mb-6 rounded-md border border-default-200 bg-default-50 p-3 text-sm">
+      <p className="font-medium mb-2">Unmarked tasks from yesterday</p>
       {routineIds.map((id) => (
-        <div key={id} className="mb-4 last:mb-0">
-          <h4 className="font-semibold">
+        <div key={id} className="mb-3 last:mb-0">
+          <h4 className="font-medium">
             <Link href={`/routines/${id}`} className="underline">
               {routineTitles[id] || "View routine"}
             </Link>
           </h4>
-          <ul className="space-y-2 mt-2">
+          <ul className="mt-1 space-y-1">
             {tasksByRoutine[id].map((task) => (
               <li key={task.id} className="flex items-center justify-between">
-                <span className="mr-4">{task.title}</span>
-                <div className="space-x-2">
+                <span className="mr-2 truncate">{task.title}</span>
+                <div className="flex gap-1">
                   <Button
                     size="sm"
+                    variant="light"
                     color="success"
                     onPress={() => resolveTask(task.id, "completed")}
                   >
@@ -118,6 +119,7 @@ export default function UnmarkedTasksBanner({ onTaskUpdate }: Props) {
                   </Button>
                   <Button
                     size="sm"
+                    variant="light"
                     color="danger"
                     onPress={() => resolveTask(task.id, "missed")}
                   >

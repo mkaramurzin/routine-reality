@@ -7,6 +7,7 @@ import { Card, CardBody, CardFooter } from '@heroui/card';
 import { Button } from '@heroui/button';
 import { Badge } from '@heroui/badge';
 import Navbar from '@/components/Navbar';
+import CustomTaskModal from '@/components/CustomTaskModal';
 import { AVAILABLE_ROUTINES, createRoutineForUser, type RoutineKey } from '@/lib/routineLibrary';
 import { getRoutineBorderColors } from '@/lib/wellnessColors';
 
@@ -34,25 +35,28 @@ export default function SelectRoutinePage() {
   const [isCreating, setIsCreating] = useState(false);
   const [userRoutines, setUserRoutines] = useState<UserRoutine[]>([]);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
+  const [isCustomTaskModalOpen, setIsCustomTaskModalOpen] = useState(false);
+
+  // Fetch user's existing routines function
+  const fetchUserRoutines = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setIsLoadingRoutines(true);
+      const response = await fetch('/api/routines');
+      if (response.ok) {
+        const routines = await response.json();
+        setUserRoutines(routines);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user routines:', error);
+    } finally {
+      setIsLoadingRoutines(false);
+    }
+  };
 
   // Fetch user's existing routines on page load
   useEffect(() => {
-    const fetchUserRoutines = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const response = await fetch('/api/routines');
-        if (response.ok) {
-          const routines = await response.json();
-          setUserRoutines(routines);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user routines:', error);
-      } finally {
-        setIsLoadingRoutines(false);
-      }
-    };
-
     fetchUserRoutines();
   }, [user?.id]);
 
@@ -211,7 +215,7 @@ export default function SelectRoutinePage() {
                 })}
               </div>
 
-              <div className="text-center mt-12">
+              <div className="text-center mt-12 space-y-6">
                 <p className="text-default-500">
                   Need help deciding? Start with a Beginner routine and work your way up.
                   {userRoutines.length > 0 && (
@@ -220,11 +224,40 @@ export default function SelectRoutinePage() {
                     </span>
                   )}
                 </p>
+                
+                <div className="border-t border-default-200 pt-6">
+                  <div className="max-w-md mx-auto">
+                    <h3 className="text-lg font-semibold text-default-900 mb-2">
+                      Want something personal?
+                    </h3>
+                    <p className="text-sm text-default-600 mb-4">
+                      Create custom tasks that fit your unique goals and lifestyle.
+                    </p>
+                    <Button
+                      color="secondary"
+                      variant="bordered"
+                      size="lg"
+                      onPress={() => setIsCustomTaskModalOpen(true)}
+                      className="w-full"
+                    >
+                      + Create Custom Task
+                    </Button>
+                  </div>
+                </div>
               </div>
             </>
           )}
         </div>
       </main>
+
+      <CustomTaskModal
+        isOpen={isCustomTaskModalOpen}
+        onClose={() => setIsCustomTaskModalOpen(false)}
+        onSuccess={() => {
+          // Refresh user routines to show the new custom task routine
+          fetchUserRoutines();
+        }}
+      />
     </div>
   );
 } 

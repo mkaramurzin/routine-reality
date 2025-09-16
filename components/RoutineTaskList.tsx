@@ -4,6 +4,7 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef } from "rea
 import TaskCard from "./TaskCard";
 import { Spinner } from "@heroui/spinner";
 import { Tabs, Tab } from "@heroui/tabs";
+import { addToast } from "@heroui/toast";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
 
 interface Task {
@@ -285,6 +286,45 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
     }
   };
 
+  // Handle deleting a custom task
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/delete`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Error deleting task: ${response.statusText}`);
+      }
+
+      addToast({
+        title: "Task Deleted",
+        description: "Your custom task has been permanently removed.",
+        color: "success",
+      });
+
+      // Refresh all task lists after deletion
+      await Promise.all([
+        fetchActiveTasks(),
+        fetchUnmarkedTasks(),
+        fetchTaskHistory()
+      ]);
+
+      // Notify parent of task update
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      addToast({
+        title: "Error",
+        description: (err as Error).message,
+        color: "danger",
+      });
+    }
+  };
+
   // Helper to group tasks by served day
   const groupTasksByDay = (tasks: Task[]) => {
     const groups: Record<string, Task[]> = {};
@@ -352,6 +392,7 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
                       onComplete={showActions ? handlers?.onComplete : undefined}
                       onMissed={showActions ? handlers?.onMissed : undefined}
                       onUndo={showActions ? handlers?.onUndo : undefined}
+                      onDelete={showActions ? handleTaskDelete : undefined}
                       isHistorical={isHistorical}
                     />
                   ))}
@@ -372,6 +413,7 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
             onComplete={showActions ? handlers?.onComplete : undefined}
             onMissed={showActions ? handlers?.onMissed : undefined}
             onUndo={showActions ? handlers?.onUndo : undefined}
+            onDelete={showActions ? handleTaskDelete : undefined}
             isHistorical={isHistorical}
           />
         ))}

@@ -208,6 +208,41 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
     }
   };
 
+  // Handle deleting a custom task
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/delete`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Error deleting task: ${response.statusText}`);
+      }
+
+      // Remove task from local state
+      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+
+      addToast({
+        title: "Task Deleted",
+        description: "Your custom task has been permanently removed.",
+        color: "success",
+      });
+
+      // Notify parent of task update
+      if (onTaskUpdate) {
+        onTaskUpdate();
+      }
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      addToast({
+        title: "Error",
+        description: (err as Error).message,
+        color: "danger",
+      });
+    }
+  };
+
   // Filter tasks to exclude those from hidden routines
   const visibleTasks = tasks.filter(task => {
     // If the task has a routineId, check if it's hidden
@@ -264,6 +299,7 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
             onComplete={handleTaskComplete}
             onMissed={handleTaskMissed}
             onUndo={handleTaskUndo}
+            onDelete={handleTaskDelete}
             isImmutable={false}
           />
         ))}
@@ -288,6 +324,7 @@ const DashboardTaskList = forwardRef<DashboardTaskListRef, DashboardTaskListProp
                 onComplete={handleTaskComplete}
                 onMissed={handleTaskMissed}
                 onUndo={handleTaskUndo}
+                onDelete={handleTaskDelete}
                 isImmutable={true}
                 stageNumber={task.stageNumber}
               />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
-import { CheckCircle, XCircle, RotateCcw, SkipForward, Lock } from "lucide-react";
+import { CheckCircle, XCircle, RotateCcw, SkipForward, Lock, Trash2 } from "lucide-react";
 import { getTaskColors, WELLNESS_COLORS, type WellnessCategory } from "@/lib/wellnessColors";
 
 interface Task {
@@ -10,6 +10,8 @@ interface Task {
   status: "todo" | "in_progress" | "completed" | "missed" | "skipped";
   wellnessCategories?: WellnessCategory[]; // New wellness categories array
   categoryColor?: string; // Keep for backward compatibility
+  routineTitle?: string; // For identifying custom tasks
+  routineId?: string; // For identifying custom tasks
 }
 
 interface TaskCardProps {
@@ -17,6 +19,7 @@ interface TaskCardProps {
   onComplete?: (taskId: string) => void;
   onMissed?: (taskId: string) => void; // New prop for missed action
   onUndo?: (taskId: string) => void; // New prop for undoing a task status
+  onDelete?: (taskId: string) => void; // New prop for deleting custom tasks
   currentTheme?: "light" | "dark"; // Theme prop for adjusting styles
   isHistorical?: boolean; // Flag to indicate if this is a historical task (no actions available)
   isImmutable?: boolean; // Flag to indicate if this task is immutable/locked
@@ -37,6 +40,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onComplete, 
   onMissed, 
   onUndo,
+  onDelete,
   currentTheme = "dark",
   isHistorical = false,
   isImmutable = false,
@@ -45,6 +49,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const isCompleted = task.status === "completed";
   const isMissed = task.status === "missed";
   const isSkipped = task.status === "skipped";
+  
+  // Check if this is a custom task
+  const isCustomTask = task.routineTitle === "Custom Tasks";
   
   // State for color-coding preference
   const [isColorCodingEnabled, setIsColorCodingEnabled] = useState(false);
@@ -469,6 +476,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
               >
                 Miss
               </Button>
+              {isCustomTask && onDelete && (
+                <Button 
+                  onClick={() => onDelete(task.id)}
+                  size="sm" 
+                  variant="flat"
+                  className="text-red-500 border-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  title="Delete this custom task"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           ) : null}
         </div>

@@ -48,6 +48,19 @@ const WELLNESS_OPTIONS: { key: WellnessCategory; label: string; description: str
   { key: 'body_maintenance', label: 'Body Maintenance', description: WELLNESS_DESCRIPTIONS.body_maintenance },
 ];
 
+const SELECT_POPOVER_LAYER = 'z-[2100]';
+
+const SELECT_POPOVER_PROPS = {
+  classNames: {
+    base: SELECT_POPOVER_LAYER,
+    content: SELECT_POPOVER_LAYER,
+  },
+} as const;
+
+const SELECT_CLASSNAMES = {
+  popoverContent: SELECT_POPOVER_LAYER,
+} as const;
+
 export default function CustomTaskModal({ isOpen, onClose, onSuccess }: CustomTaskModalProps) {
   const router = useRouter();
   const [formData, setFormData] = useState<CustomTaskForm>({
@@ -194,12 +207,17 @@ export default function CustomTaskModal({ isOpen, onClose, onSuccess }: CustomTa
             placeholder="Select duration"
             selectedKeys={new Set([formData.duration])}
             onSelectionChange={(keys) => {
-              const duration = Array.from(keys)[0] as string;
+              const [duration] = Array.from(keys);
+              if (typeof duration !== 'string') {
+                return;
+              }
               setFormData(prev => ({ ...prev, duration }));
             }}
             isInvalid={!!errors.duration}
             errorMessage={errors.duration}
             isRequired
+            classNames={SELECT_CLASSNAMES}
+            popoverProps={SELECT_POPOVER_PROPS}
             tabIndex={2}
           >
             {DURATION_OPTIONS.map((option) => (
@@ -214,14 +232,19 @@ export default function CustomTaskModal({ isOpen, onClose, onSuccess }: CustomTa
             placeholder="Select a wellness category"
             selectedKeys={new Set([formData.category])}
             onSelectionChange={(keys) => {
-              const category = Array.from(keys)[0] as WellnessCategory;
-              setFormData(prev => ({ ...prev, category }));
+              const [category] = Array.from(keys);
+              if (!category) {
+                return;
+              }
+              setFormData(prev => ({ ...prev, category: category as WellnessCategory }));
             }}
             tabIndex={3}
             isRequired
+            classNames={SELECT_CLASSNAMES}
+            popoverProps={SELECT_POPOVER_PROPS}
           >
             {WELLNESS_OPTIONS.map((option) => (
-              <SelectItem 
+              <SelectItem
                 key={option.key}
                 description={option.description}
               >

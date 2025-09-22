@@ -5,6 +5,7 @@ import RoutineList, { RoutineListRef } from "./RoutineList";
 import DashboardTaskList, { DashboardTaskListRef } from "./DashboardTaskList";
 import UpcomingTaskList from "./UpcomingTaskList";
 import UnmarkedTasksBanner from "./UnmarkedTasksBanner";
+import CustomTaskForm from "./CustomTaskForm";
 
 interface DashboardClientProps {
   userId: string;
@@ -72,28 +73,48 @@ const DashboardClient: React.FC<DashboardClientProps> = ({ userId, userTimezone 
     checkTasksFinalized();
   };
 
+  const handleCustomTaskSuccess = async () => {
+    // Refresh the task list when a custom task is created
+    if (taskListRef.current) {
+      await taskListRef.current.refreshTasks();
+    }
+    
+    // Re-check if we should show upcoming tasks
+    checkTasksFinalized();
+  };
+
   return (
-    <div className="space-y-12">
-      <UnmarkedTasksBanner onTaskUpdate={handleTaskUpdate} />
+    <div className="space-y-8">
+      {/* Desktop Layout: Custom Task Form + Unmarked Tasks (1/3) | Today's Tasks (2/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Custom Tasks & Unmarked Tasks */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Custom Task Form */}
+          <CustomTaskForm onSuccess={handleCustomTaskSuccess} />
+          
+          {/* Unmarked Tasks Banner */}
+          <UnmarkedTasksBanner onTaskUpdate={handleTaskUpdate} />
+        </div>
 
-      {/* Tasks Section */}
-      <section>
-        {loading ? (
-          <div className="text-center py-8 text-default-500">
-            <p>Loading tasks...</p>
-          </div>
-        ) : showUpcoming ? (
-          <UpcomingTaskList userId={userId} userTimezone={userTimezone} />
-        ) : (
-          <>
-            <h2 className="text-2xl font-bold text-default-900 mb-6">Today's Tasks</h2>
-            <DashboardTaskList ref={taskListRef} userId={userId} onTaskUpdate={handleTaskUpdate} />
-          </>
-        )}
-      </section>
+        {/* Right Column - Today's Tasks */}
+        <div className="lg:col-span-2">
+          {loading ? (
+            <div className="text-center py-8 text-default-500">
+              <p>Loading tasks...</p>
+            </div>
+          ) : showUpcoming ? (
+            <UpcomingTaskList userId={userId} userTimezone={userTimezone} />
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-default-900 mb-6">Today's Tasks</h2>
+              <DashboardTaskList ref={taskListRef} userId={userId} onTaskUpdate={handleTaskUpdate} />
+            </>
+          )}
+        </div>
+      </div>
 
-      {/* Routines Section */}
-      <section>
+      {/* Full Width Routines Section */}
+      <section className="mt-12">
         <RoutineList ref={routineListRef} onRoutineSkipped={handleRoutineSkipped} />
       </section>
     </div>

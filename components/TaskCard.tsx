@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
-import { CheckCircle, XCircle, RotateCcw, SkipForward, Lock, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, RotateCcw, SkipForward, Lock, Trash2, Flag } from "lucide-react";
 import { getTaskColors, WELLNESS_COLORS, type WellnessCategory } from "@/lib/wellnessColors";
 
 interface Task {
@@ -12,6 +12,9 @@ interface Task {
   categoryColor?: string; // Keep for backward compatibility
   routineTitle?: string; // For identifying custom tasks
   routineId?: string; // For identifying custom tasks
+  stageProgression?: boolean;
+  stageNumber?: number;
+  stageAdvancedAt?: string;
 }
 
 interface TaskCardProps {
@@ -49,6 +52,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const isCompleted = task.status === "completed";
   const isMissed = task.status === "missed";
   const isSkipped = task.status === "skipped";
+  const isStageProgression = task.stageProgression === true;
   
   // Check if this is a custom task
   const isCustomTask = task.routineTitle === "Custom Tasks";
@@ -390,24 +394,24 @@ const TaskCard: React.FC<TaskCardProps> = ({
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <div 
+            <div
               className={`w-3 h-3 rounded-full ${
-                isCompleted ? 'bg-green-500' : 
-                isMissed ? 'bg-gray-400' : 
+                isCompleted ? 'bg-green-500' :
+                isMissed ? 'bg-gray-400' :
                 isSkipped ? 'bg-amber-500' :
                 isImmutable ? 'bg-slate-400' : ''
-              }`} 
-              style={{ 
+              }`}
+              style={{
                 backgroundColor: !isCompleted && !isMissed && !isSkipped && !isImmutable && isColorCodingEnabled
                   ? primaryWellnessColor
                   : !isCompleted && !isMissed && !isSkipped && !isImmutable && !isColorCodingEnabled
                   ? (currentTheme === "light" ? "#e4e4e7" : "#3f3f46")
-                  : undefined 
+                  : undefined
               }}
             ></div>
-            <h3 
+            <h3
               className={`font-medium text-lg text-default-900 ${
-                isCompleted ? 'line-through opacity-80' : ''
+                isCompleted && !isStageProgression ? 'line-through opacity-80' : ''
               } ${
                 isMissed ? 'opacity-70' : ''
               } ${
@@ -418,10 +422,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
             >
               {task.title}
             </h3>
+            {isStageProgression && task.stageNumber && (
+              <span className="ml-1 text-xs font-semibold uppercase tracking-wide text-primary-600 bg-primary-100 dark:bg-primary-900/40 px-2 py-0.5 rounded-full">
+                Stage {task.stageNumber}
+              </span>
+            )}
           </div>
           {task.description && (
             <p className={`text-default-600 mt-1 pl-5 ${
-              isCompleted ? 'opacity-80' : ''
+              isCompleted && !isStageProgression ? 'opacity-80' : ''
             } ${
               isMissed ? 'opacity-70' : ''
             } ${
@@ -433,7 +442,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             </p>
           )}
         </div>
-        
+
         <div>
           {isImmutable ? (
             <div className="flex items-center text-slate-500">
@@ -441,9 +450,21 @@ const TaskCard: React.FC<TaskCardProps> = ({
               <span className="text-sm">Locked</span>
             </div>
           ) : isCompleted ? (
-            <div className="flex items-center text-green-500 group-hover:invisible">
-              <CheckCircle className="w-5 h-5 mr-1" />
-              <span className="text-sm">Completed</span>
+            <div
+              className={`flex items-center ${
+                isStageProgression ? "text-primary-500" : "text-green-500"
+              } ${
+                isStageProgression ? "" : "group-hover:invisible"
+              }`}
+            >
+              {isStageProgression ? (
+                <Flag className="w-5 h-5 mr-1" />
+              ) : (
+                <CheckCircle className="w-5 h-5 mr-1" />
+              )}
+              <span className="text-sm">
+                {isStageProgression ? "Stage progression" : "Completed"}
+              </span>
             </div>
           ) : isMissed ? (
             <div className="flex items-center text-gray-500 group-hover:invisible">

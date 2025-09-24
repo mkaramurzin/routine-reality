@@ -5,7 +5,7 @@ import TaskCard from "./TaskCard";
 import { Spinner } from "@heroui/spinner";
 import { Tabs, Tab } from "@heroui/tabs";
 import { addToast } from "@heroui/toast";
-import { CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle, Clock } from "lucide-react";
 
 interface Task {
   id: string;
@@ -15,6 +15,10 @@ interface Task {
   scheduledFor?: string;
   completedAt?: string;
   missedAt?: string;
+  createdAt?: string;
+  stageProgression?: boolean;
+  stageNumber?: number;
+  stageAdvancedAt?: string;
 }
 
 interface RoutineTaskListProps {
@@ -29,10 +33,8 @@ export interface RoutineTaskListRef {
 const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ routineId, onTaskUpdate }, ref) => {
   const [activeTasks, setActiveTasks] = useState<Task[]>([]);
   const [historyTasks, setHistoryTasks] = useState<Task[]>([]);
-  const [unmarkedTasks, setUnmarkedTasks] = useState<Task[]>([]);
   const [activeLoading, setActiveLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [unmarkedLoading, setUnmarkedLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("active");
 
@@ -70,8 +72,8 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
 
   // Fetch task history when history tab is selected
   const fetchTaskHistory = async () => {
-    if (historyTasks.length > 0) return; // Don't fetch if already loaded
-    
+    if (historyLoading) return;
+
     try {
       setHistoryLoading(true);
       const response = await fetch(`/api/tasks?type=history&routineId=${routineId}`);
@@ -80,8 +82,32 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
         throw new Error(`Error fetching task history: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      setHistoryTasks(data);
+      const data: Task[] = await response.json();
+      const formatted = data.map(task => {
+        if (task.stageProgression) {
+          const advancedAt =
+            task.stageAdvancedAt || task.completedAt || task.scheduledFor || task.createdAt;
+          const advancedDate = advancedAt ? new Date(advancedAt) : null;
+          const timeString = advancedDate
+            ? advancedDate.toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+                timeZoneName: "short",
+              })
+            : null;
+
+          return {
+            ...task,
+            description: timeString
+              ? `Stage progression recorded at ${timeString}.`
+              : "Stage progression milestone.",
+          };
+        }
+
+        return task;
+      });
+
+      setHistoryTasks(formatted);
     } catch (err) {
       setError((err as Error).message);
       console.error("Error fetching task history:", err);
@@ -90,37 +116,13 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
     }
   };
 
-  // Fetch unmarked tasks when unmarked tab is selected
-  const fetchUnmarkedTasks = async () => {
-    if (unmarkedTasks.length > 0) return; // Don't fetch if already loaded
-    
-    try {
-      setUnmarkedLoading(true);
-      const response = await fetch(`/api/tasks?type=unmarked&routineId=${routineId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Error fetching unmarked tasks: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      setUnmarkedTasks(data);
-    } catch (err) {
-      setError((err as Error).message);
-      console.error("Error fetching unmarked tasks:", err);
-    } finally {
-      setUnmarkedLoading(false);
-    }
-  };
-
   // Handle tab selection
   const handleTabChange = (key: React.Key) => {
     const tabKey = key.toString();
     setSelectedTab(tabKey);
-    
+
     if (tabKey === "history") {
       fetchTaskHistory();
-    } else if (tabKey === "unmarked") {
-      fetchUnmarkedTasks();
     }
   };
 
@@ -227,65 +229,6 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
     }
   };
 
-  // Handle resolving an unmarked task as completed
-  const handleUnmarkedTaskComplete = async (taskId: string) => {
-    try {
-      const response = await fetch(`/api/tasks/${taskId}?type=unmarked`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: "completed",
-          completedAt: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error updating task: ${response.statusText}`);
-      }
-
-      // Remove task from local state
-      setUnmarkedTasks((prev) => prev.filter((t) => t.id !== taskId));
-
-      if (onTaskUpdate) {
-        onTaskUpdate();
-      }
-    } catch (err) {
-      console.error("Error completing unmarked task:", err);
-      setError((err as Error).message);
-    }
-  };
-
-  // Handle resolving an unmarked task as missed
-  const handleUnmarkedTaskMissed = async (taskId: string) => {
-    try {
-      const response = await fetch(`/api/tasks/${taskId}?type=unmarked`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: "missed",
-          missedAt: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error updating task: ${response.statusText}`);
-      }
-
-      setUnmarkedTasks((prev) => prev.filter((t) => t.id !== taskId));
-
-      if (onTaskUpdate) {
-        onTaskUpdate();
-      }
-    } catch (err) {
-      console.error("Error marking unmarked task as missed:", err);
-      setError((err as Error).message);
-    }
-  };
-
   // Handle deleting a custom task
   const handleTaskDelete = async (taskId: string) => {
     try {
@@ -307,7 +250,6 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
       // Refresh all task lists after deletion
       await Promise.all([
         fetchActiveTasks(),
-        fetchUnmarkedTasks(),
         fetchTaskHistory()
       ]);
 
@@ -330,7 +272,7 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
     const groups: Record<string, Task[]> = {};
     tasks.forEach((task) => {
       const dateStr =
-        task.scheduledFor || task.completedAt || task.missedAt || "";
+        task.scheduledFor || task.completedAt || task.missedAt || task.createdAt || "";
       const day = dateStr ? new Date(dateStr).toDateString() : "Unknown";
       groups[day] = groups[day] || [];
       groups[day].push(task);
@@ -482,28 +424,6 @@ const RoutineTaskList = forwardRef<RoutineTaskListRef, RoutineTaskListProps>(({ 
           )}
         </Tab>
         
-        <Tab 
-          key="unmarked" 
-          title={
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              <span>Unmarked Tasks</span>
-            </div>
-          }
-        >
-          {renderTaskList(
-            unmarkedTasks,
-            unmarkedLoading,
-            "No unmarked tasks for this routine.",
-            true,
-            false,
-            {
-              onComplete: handleUnmarkedTaskComplete,
-              onMissed: handleUnmarkedTaskMissed,
-            },
-            true
-          )}
-        </Tab>
       </Tabs>
     </div>
   );
